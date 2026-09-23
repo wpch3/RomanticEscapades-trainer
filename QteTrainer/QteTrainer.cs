@@ -1515,6 +1515,64 @@ namespace QteTrainer
             QteTrainerPlugin.LogSource?.LogInfo(sb.ToString());
         }
 
+        /// <summary>
+        /// 全量数值 dump: 对活着的 Playable 系对象, 打印**所有**数值(int/float/double)字段和属性
+        /// (含私有) + 真实运行时类型名。调教界面打开时, 值=2.3(心形%) 和 =9(手计数) 的就是目标。
+        /// 分段输出避免单行过长被截断。
+        /// </summary>
+        public static void DumpAllNumeric()
+        {
+            var types = new List<Type>
+            {
+                typeof(Game.PlayablePlayer), typeof(Game.EncounterPlayer), typeof(Game.EncounterFreePlayer),
+                typeof(Game.NeedlePlayer), typeof(Game.PlayableForm),
+            };
+            var entries = new List<string>();
+            foreach (var t in types)
+            {
+                foreach (var o in FindAll(t))
+                {
+                    if (o == null) continue;
+                    var rt = o.GetType();
+                    foreach (var fi in rt.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                    {
+                        try
+                        {
+                            object v = fi.GetValue(o);
+                            if (v is int || v is float || v is double || v is long)
+                                entries.Add($"[{rt.Name}.f_{fi.Name}={v}]");
+                        }
+                        catch { }
+                    }
+                    foreach (var pi in rt.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+                    {
+                        if (!pi.CanRead) continue;
+                        try
+                        {
+                            object v = pi.GetValue(o, null);
+                            if (v is int || v is float || v is double || v is long)
+                                entries.Add($"[{rt.Name}.p_{pi.Name}={v}]");
+                        }
+                        catch { }
+                    }
+                }
+            }
+
+            if (entries.Count == 0)
+            {
+                QteTrainerPlugin.LogSource?.LogInfo("全量数值 dump: 没有活着的对象或没有数值字段。");
+                return;
+            }
+            const int chunk = 24;
+            for (int i = 0; i < entries.Count; i += chunk)
+            {
+                int e = Math.Min(i + chunk, entries.Count);
+                QteTrainerPlugin.LogSource?.LogInfo(
+                    $"全量数值 dump ({i}-{e - 1}/{entries.Count}): " +
+                    string.Join(" ", entries.GetRange(i, e - i).ToArray()));
+            }
+        }
+
         /// <summary>打印小游戏当前状态, 用来确认哪个字段是那个 9/10 计数。</summary>
         public static void DumpMiniGame()
         {
@@ -3287,6 +3345,8 @@ namespace QteTrainer
                 TrainerActions.DumpSceneObjects();
             if (GUILayout.Button("读值定位 (心形%/手计数 是哪个字段)"))
                 TrainerActions.DumpPlayableState();
+            if (GUILayout.Button("全量数值 dump (2.3 和 9 在哪个字段)"))
+                TrainerActions.DumpAllNumeric();
 
             GUILayout.Label("排查用 (功能没生效时请点这些, 然后把日志发出来):", GUI.skin.box);
             if (GUILayout.Button("打印小游戏状态 (看 9/10 计数是哪个字段)"))
