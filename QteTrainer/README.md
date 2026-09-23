@@ -535,6 +535,51 @@ Game.Task
 面板新增第五页「其它」。关总开关（`F8`）现在会把调教次数、调教消耗、外观解锁条件、
 强制显示的鼠标全部还原。
 
+## v1.8.0：调教真正生效 —— 它是个连线小游戏
+
+### 之前"调教没生效"的根因
+
+你发的截图揭穿了真相：**调教是一个路径连线小游戏**，不是改存档数据。
+
+- 右下角那只手的数字（9/10）= 剩余可放置的路径点数，是小游戏内部状态；
+- 左下角心形 = 调教进度。
+
+我之前改的是 `ProtoObey.Limit`/`InfoGirl.Obey`/`FlirtCount` 这些**存档/配置**字段，
+而那个 9/10 计数和通关判定都在运行时的 `Game.TouchPlayer` 里，改配置影响不到它，
+所以你看到"功能都没生效"。这轮我改对了地方。
+
+### 一键通关的新路径（全部是公开 API，元数据 dump 确认）
+
+```
+Game.TouchPoint : UnityEngine.MonoBehaviour      <-- 可用 FindObjectOfType 抓
+    Game.TouchPlayer MyTouchPlayer {get;set;}
+Game.TouchPlayer
+    float CurtProgressMale   {get;set;}
+    float CurtProgressFemale {get;set;}          左下角进度
+    float CurtSweatProgress  {get;set;}
+    void  TouchFinish()                          直接走结束流程
+```
+
+做法：场景里 `FindObjectOfType<TouchPoint>()` → `MyTouchPlayer` → 进度拉满 + `TouchFinish()`，
+一次性通关，**完全绕过那个 10 次计数**。
+
+`F1` 现在优先通关正在玩的小游戏；没在玩游戏时才退回改写服从度数据。
+
+### 面板「调教」页新增
+
+- **小游戏: 立即通关** —— 调教界面打开时点它直接通关；
+- **自动满进度** 开关 —— 打开期间每帧把进度按住，小游戏自己判满；
+- **打印小游戏状态** —— 输出 `ProgressMale/Female`、`PerfectCounter`、`MyTouchPoints` 等，
+  用来确认 9/10 到底对应哪个字段（如果后面还想要"次数不下降"，这一步能定位）。
+
+### 这轮同时确认的其它事
+
+- `ProtoMgr.Members` 里 **`Game.ProtoObey` 是注册了的**（=6 条），但直接 `Type.GetType` 索引
+  会抛 `KeyNotFoundException`（IL2CPP 字典按引用相等），所以 `GetAllProtoObey` 走了
+  `Girl.GetProtoObay` 兜底路径，能拿到 6 条。
+- 原始 `ProtoObey.Limit=9999`，`Reduce=20` —— 说明 `Limit` 并不是界面上那个 10，
+  进一步证实 10 是小游戏内部计数。
+
 ## 注意事项
 
 - 若同时使用原 xmod 的移速倍率，两处倍率会相乘；关掉其中一个即可。
