@@ -930,20 +930,65 @@ namespace QteTrainer
         private static List<ProtoObey> GetAllProtoObey()
         {
             var list = new List<ProtoObey>();
+
+            // 路径 A: ProtoMgr 静态表。已确认 Game.ProtoObey : Game.ProtoBase,
+            // 和 ProtoItem / ProtoBuild 同基类, 所以和物品表走的是同一套索引。
             object keyMap = GetProtoKeyMap("Game.ProtoObey");
-            if (keyMap == null)
+            if (keyMap != null)
             {
+                foreach (var pair in EnumerateAny(keyMap))
+                {
+                    object v = PairPart(pair, "Value");
+                    var proto = v as ProtoObey;
+                    if (proto == null) proto = pair as ProtoObey;
+                    if (proto != null && !list.Contains(proto)) list.Add(proto);
+                }
+            }
+
+            // 路径 B(兜底): 直接从 Girl 身上拿。Girl.GetProtoObay(int) / CurtProtoObay
+            // 返回的就是配置表里的同一个实例, 所以就算 ProtoMgr 那条路走不通也照样能改到。
+            if (list.Count == 0)
+            {
+                try
+                {
+                    GirlMgr mgr = null;
+                    try { mgr = GirlMgr.Instance; } catch { }
+                    if (mgr != null)
+                    {
+                        foreach (var o in EnumerateAny(ReflectGet(mgr, "Girls")))
+                        {
+                            var g = o as Game.Girl;
+                            if (g == null) continue;
+                            try
+                            {
+                                var curt = g.CurtProtoObay;
+                                if (curt != null && !list.Contains(curt)) list.Add(curt);
+                            }
+                            catch { }
+                            for (int i = 0; i < 32; i++)
+                            {
+                                ProtoObey po = null;
+                                try { po = g.GetProtoObay(i); } catch { break; }
+                                if (po == null) break;
+                                if (!list.Contains(po)) list.Add(po);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    QteTrainerPlugin.LogSource?.LogWarning(
+                        $"从 Girl 上取 ProtoObey 失败: {ex.GetType().Name}: {ex.Message}");
+                }
+                if (list.Count > 0)
+                    QteTrainerPlugin.LogSource?.LogInfo(
+                        $"ProtoObey 走了兜底路径(从 Girl.GetProtoObay 取), 拿到 {list.Count} 条。");
+            }
+
+            if (list.Count == 0)
                 QteTrainerPlugin.LogSource?.LogWarning(
-                    "ProtoMgr 里没找到 Game.ProtoObey 表(还没进入正常游戏场景?)。");
-                return list;
-            }
-            foreach (var pair in EnumerateAny(keyMap))
-            {
-                object v = PairPart(pair, "Value");
-                var proto = v as ProtoObey;
-                if (proto == null) proto = pair as ProtoObey;
-                if (proto != null && !list.Contains(proto)) list.Add(proto);
-            }
+                    "ProtoMgr 和 Girl 上都没拿到 Game.ProtoObey 配置(还没进入正常游戏场景?)。");
+
             return list;
         }
 

@@ -365,6 +365,75 @@ log4：`拿不到本地玩家 Creature, 无法坐标传送。` ×8。
 | F12 | `Master/TpNextBuildKey` | 传送到下一个办事地点 |
 | F6 | `Master/TpPrevBuildKey` | 传送到上一个办事地点 |
 
+## v1.6.0：调教（`F1` 一键通关 / `F2` 局内次数不下降）
+
+### 游戏里「调教」对应的类型
+
+从 `BepInEx/interop/Assembly-CSharp.dll` 的元数据里 dump 出来的确切签名（含参数类型，不是猜的）：
+
+```
+Game.ProtoObey : Game.ProtoBase        调教配置表
+    int   ObeyMax      服从度上限
+    int   FlirtIncre   每次调教增加的服从度
+    int   FavorIncre   每次调教增加的好感
+    float CostTime     耗时
+    float CostRP       体力消耗
+    int   Limit        局内次数上限     <-- 默认就是那个 10
+    int   Reduce       每次下降量       <-- 设成 0 就不会下降
+    int   ItemCost     道具消耗
+
+Game.InfoGirl
+    int Obey       {get;set;}   服从度
+    int FlirtCount {get;set;}   调教次数
+    int Favorability / FavorabilityStar {get;set;}
+
+Game.Girl
+    InfoGirl  Info          {get;set;}
+    ProtoObey CurtProtoObay {get;}        当前这条调教配置
+    ProtoObey GetProtoObay(int)
+    void AddObey(int) / ClearObey() / AddFlirt(int) / ClearFlirt()
+
+Game.GirlMgr : Game.Singleton`1<GirlMgr>
+    List<Girl> Girls {get;}
+    Dictionary<string,Girl> DicGirls {get;}
+    Girl GetGirl(string)
+    void AddObey(string,int) / ClearObey(string)
+```
+
+关键点：`ProtoObey` 是 `ProtoMgr` 里的静态配置表，而 `Girl.CurtProtoObay` 返回的就是表里
+**同一个实例** —— 所以直接改表，正在进行中的那一局也会立刻生效。
+
+### `F2` 调教局内次数不下降
+
+把所有 `ProtoObey` 条目的 `Reduce` 设成 0（次数不再下降），`Limit` 拉到 `Train/Limit`
+（默认 999）。原值会备份，再按一次 `F2` 还原成游戏原值；关总开关（`F8`）也会自动还原。
+
+### `F1` 调教一键通关
+
+把每个 NPC 的 `InfoGirl.Obey` 直接写到上限、`FlirtCount` 拉到 `Train/FlirtCount`（默认 999）。
+`Obey` 的目标值默认取配置表里最大的 `ObeyMax`，可以用 `Train/ObeyTarget` 覆盖。
+
+取 NPC 有两条路：先遍历 `GirlMgr.Girls`（存档里已创建的，直接改对象最准），再用
+`ProtoGirl.GetProtoAll()` 补齐；拿不到 `Girl` 对象时退一步用 `GirlMgr.ClearObey/AddObey(key, n)`
+按 key 写服从度。
+
+取 `ProtoObey` 也有两条路：`ProtoMgr.Members` 索引（和物品表同一套），走不通就从
+`Girl.CurtProtoObay` / `GetProtoObay(i)` 兜底。
+
+### 新增配置项
+
+| 配置项 | 默认 | 说明 |
+|---|---|---|
+| `Master/TrainClearKey` | `F1` | 调教一键通关热键 |
+| `Master/TrainLimitKey` | `F2` | 调教次数不下降 开/关 热键 |
+| `Train/Limit` | `999` | 局内次数上限（`0`=不改上限，只把 `Reduce` 设 0） |
+| `Train/NoReduce` | `true` | 把所有 `ProtoObey.Reduce` 设 0，次数不再下降 |
+| `Train/ObeyTarget` | `0` | 一键通关写入的服从度（`0`=用表里最大的 `ObeyMax`） |
+| `Train/FlirtCount` | `999` | 一键通关写入的调教次数 |
+
+面板新增第四页「调教」，里面还有一个「把当前调教配置表打到日志」的按钮，
+用来核对游戏里的真实 `Limit` / `Reduce` / `ObeyMax`。
+
 ## 注意事项
 
 - 若同时使用原 xmod 的移速倍率，两处倍率会相乘；关掉其中一个即可。
