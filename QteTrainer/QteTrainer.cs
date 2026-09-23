@@ -1431,19 +1431,6 @@ namespace QteTrainer
             // 故意留空: 调教控制器未定位。定位后在这里每帧按住调教进度。
         }
 
-        /// <summary>每帧调用(仅当 MiniGameAutoWin 开): 把进度按住, 让小游戏自己判满。</summary>
-        public static void ApplyMiniGameAutoWin()
-        {
-            var player = FindTouchPlayerCached();
-            if (player == null) return;
-            try
-            {
-                player.CurtProgressMale = 100f;
-                player.CurtProgressFemale = 100f;
-            }
-            catch { }
-        }
-
         public static void ToggleMiniGameAutoWin()
         {
             MiniGameAutoWin = !MiniGameAutoWin;
