@@ -1364,8 +1364,8 @@ namespace QteTrainer
             }
         }
 
-        /// <summary>一次性通关当前调教小游戏。返回是否抓到并执行。</summary>
-        public static bool FinishMiniGameOnce()
+        /// <summary>【做爱系统】进度拉满并结束。TouchPlayer 被证实是做爱控制器, 与调教无关, 单独放着。</summary>
+        public static bool FinishSexOnce()
         {
             var player = FindTouchPlayer();
             if (player == null)
@@ -1412,6 +1412,25 @@ namespace QteTrainer
             return _cachedTouchPlayer;
         }
 
+        /// <summary>
+        /// 调教一键通关。注意: TouchPlayer/MiniGameForm 是"做爱"系统, 不能用来通关调教
+        /// (会产生做爱进度满的副作用)。调教连线小游戏的控制器还没定位, 所以这里先打印
+        /// 场景扫描, 等确认控制器后再接上。返回 false 时调用方会回退到改写服从度数据。
+        /// </summary>
+        public static bool FinishMiniGameOnce()
+        {
+            QteTrainerPlugin.LogSource?.LogInfo(
+                "调教连线小游戏的控制器尚未定位(之前的 TouchPlayer 是做爱系统, 已停用)。已打印场景扫描, 请把这行日志发出来。");
+            DumpSceneObjects();
+            return false;
+        }
+
+        /// <summary>每帧调用(仅当 MiniGameAutoWin 开)。调教控制器未定位前为空操作, 避免误碰做爱系统。</summary>
+        public static void ApplyMiniGameAutoWin()
+        {
+            // 故意留空: 调教控制器未定位。定位后在这里每帧按住调教进度。
+        }
+
         /// <summary>每帧调用(仅当 MiniGameAutoWin 开): 把进度按住, 让小游戏自己判满。</summary>
         public static void ApplyMiniGameAutoWin()
         {
@@ -1430,6 +1449,32 @@ namespace QteTrainer
             MiniGameAutoWin = !MiniGameAutoWin;
             QteTrainerPlugin.LogSource?.LogInfo(
                 $"小游戏自动满进度: {(MiniGameAutoWin ? "开 (调教界面打开期间进度会被按住)" : "关")}。");
+        }
+
+        /// <summary>
+        /// 全场景扫描: 列出十几种候选控制器/界面的实例数。
+        /// TouchPlayer/MiniGameForm 被证实是"做爱"系统, 调教连线是另一个控制器,
+        /// 所以在调教界面打开时点这个, 哪个计数>0 哪个就是调教用的。
+        /// </summary>
+        public static void DumpSceneObjects()
+        {
+            var types = new List<Type>
+            {
+                typeof(Game.TrainPlayer), typeof(Game.FlirtPlayer), typeof(Game.TouchPlayer),
+                typeof(Game.TouchPoint), typeof(Game.MiniGameForm), typeof(Game.ExerciseInfoForm),
+                typeof(Game.PlayableForm), typeof(Game.InteractionForm), typeof(Game.ObeyChangeForm),
+                typeof(Game.DredgePlayer), typeof(Game.NeedlePlayer), typeof(Game.AcupunctureForm),
+                typeof(Game.BathePlayer), typeof(Game.SleepPlayer), typeof(Game.WorkPlayer),
+                typeof(Game.CompetitionPlayer), typeof(Game.CompetitionForm), typeof(Game.PlayablePlayer),
+                typeof(Game.ObservePlayer), typeof(Game.EncounterPlayer),
+            };
+            var sb = new StringBuilder("场景对象扫描: ");
+            foreach (var t in types)
+            {
+                int n = FindAll(t).Count;
+                sb.Append($"{t.Name}={n} ");
+            }
+            QteTrainerPlugin.LogSource?.LogInfo(sb.ToString());
         }
 
         /// <summary>打印小游戏当前状态, 用来确认哪个字段是那个 9/10 计数。</summary>
@@ -3200,6 +3245,8 @@ namespace QteTrainer
             if (GUILayout.Button(TrainerActions.MiniGameAutoWin ? "自动满进度: 开 (点击关)" : "自动满进度: 关 (点击开)"))
                 TrainerActions.ToggleMiniGameAutoWin();
             GUILayout.EndHorizontal();
+            if (GUILayout.Button("扫描场景对象 (定位调教控制器, 发日志用)"))
+                TrainerActions.DumpSceneObjects();
 
             GUILayout.Label("排查用 (功能没生效时请点这些, 然后把日志发出来):", GUI.skin.box);
             if (GUILayout.Button("打印小游戏状态 (看 9/10 计数是哪个字段)"))
@@ -3242,6 +3289,10 @@ namespace QteTrainer
 
             if (GUILayout.Button("任务目标一键完成 (进行中的任务会走 Succ 发奖励)"))
                 TrainerActions.FinishAllTasks();
+
+            // 做爱系统单独放这里, 和调教分开, 避免混淆。
+            if (GUILayout.Button("做爱: 进度拉满并结束 (TouchPlayer)"))
+                TrainerActions.FinishSexOnce();
 
             GUILayout.Label("参数在 cfg 里改, 改完重进游戏:", GUI.skin.box);
             GUILayout.Label($"  Money/Gold = {QteTrainerPlugin.MoneyGold.Value}   F3 写入的金币数量");
