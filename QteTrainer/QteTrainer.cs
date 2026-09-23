@@ -124,7 +124,10 @@ namespace QteTrainer
             ObeyLimit       = Config.Bind("Train", "Limit", 999, "调教局内次数上限(原表通常是 10)。0=不改上限, 只把 Reduce 设 0");
             ObeyNoReduce    = Config.Bind("Train", "NoReduce", true, "true=把所有 ProtoObey.Reduce 设为 0, 局内次数不再下降(直到一局通关)");
             ObeyTarget      = Config.Bind("Train", "ObeyTarget", 0, "一键通关时写入的服从度。0=用表里最大的 ObeyMax");
-            FlirtCountTarget= Config.Bind("Train", "FlirtCount", 999, "一键通关时写入的调教次数(FlirtCount)");
+            // FlirtCount 是**往上数**的计数器: 剩余次数 = ProtoObey.Limit - FlirtCount
+            // (依据: ObeyChangeForm 上有 TxtRemain"剩余", Girl 上是 AddFlirt/ClearFlirt)。
+            // 所以写 0 = 次数全满; 写 -1 = 不动这个值。之前默认 999 是写反了, 会把调教锁死。
+            FlirtCountTarget= Config.Bind("Train", "SetFlirtCount", 0, "一键通关时写入的已调教次数(FlirtCount)。0=清空(次数全满), -1=不改");
             TrainFreeCost   = Config.Bind("Train", "FreeCost", true, "true=调教不消耗时间/体力/道具(CostTime、CostRP、ItemCost 全设 0)");
             SetMoneyKey     = Config.Bind("Master", "SetMoneyKey", "F3", "金币/经验拉满热键");
             UnlockBodyKey   = Config.Bind("Master", "UnlockBodyKey", "F4", "解锁全部身体外观热键");
@@ -1227,6 +1230,7 @@ namespace QteTrainer
                 if (info != null)
                 {
                     info.Obey = obey;
+                    // flirt < 0 表示不动这个值(见 Train/SetFlirtCount 的说明)。
                     if (flirt >= 0) info.FlirtCount = flirt;
                     ok = true;
                 }
@@ -1273,6 +1277,108 @@ namespace QteTrainer
                     sb.Append($" [读取失败 {ex.GetType().Name}];");
                 }
             }
+            QteTrainerPlugin.LogSource?.LogInfo(sb.ToString());
+        }
+
+        /// <summary>
+        /// 列出 ProtoMgr.Members 里注册的**所有**表(表名 + 条数)。
+        /// 这是判断 Game.ProtoObey 到底有没有被注册进来的唯一可靠办法。
+        /// </summary>
+        public static void DumpProtoMgrTables()
+        {
+            ProtoMgr mgr = null;
+            try { mgr = ProtoMgr.Instance; }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"ProtoMgr.Instance 读取失败: {ex.GetType().Name}: {ex.Message}");
+                return;
+            }
+            if (mgr == null)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning("ProtoMgr.Instance 为 null(还没进入正常游戏场景?)。");
+                return;
+            }
+            object members = ReflectGet(mgr, "Members");
+            if (members == null)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning("ProtoMgr.Members 为 null。");
+                return;
+            }
+            var lines = new List<string>();
+            foreach (var pair in EnumerateAny(members))
+            {
+                object k = PairPart(pair, "Key");
+                object v = PairPart(pair, "Value");
+                string name = TypeName(k);
+                int cnt = -1;
+                try
+                {
+                    object km = ReflectGet(v, "KeyMap");
+                    if (km != null) cnt = EnumerateAny(km).Count;
+                }
+                catch { }
+                lines.Add($"{(string.IsNullOrEmpty(name) ? "(空)" : name)}={cnt}");
+            }
+            QteTrainerPlugin.LogSource?.LogInfo(
+                $"ProtoMgr.Members 共 {lines.Count} 张表: {string.Join(", ", lines.ToArray())}");
+        }
+
+        /// <summary>
+        /// 打印每个 NPC 当前的调教状态, 用来验证
+        /// 「剩余次数 = ProtoObey.Limit - InfoGirl.FlirtCount」这个推断。
+        /// </summary>
+        public static void DumpTrainState()
+        {
+            GirlMgr mgr = null;
+            try { mgr = GirlMgr.Instance; }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"GirlMgr.Instance 读取失败: {ex.GetType().Name}: {ex.Message}");
+                return;
+            }
+            if (mgr == null)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning("GirlMgr.Instance 为 null。");
+                return;
+            }
+
+            var protos = GetAllProtoObey();
+            var sb = new StringBuilder();
+            sb.Append($"调教状态诊断: ProtoObey 表拿到 {protos.Count} 条。");
+
+            int gi = 0;
+            foreach (var o in EnumerateAny(ReflectGet(mgr, "Girls")))
+            {
+                var g = o as Game.Girl;
+                if (g == null) continue;
+                gi++;
+                if (gi > 12) { sb.Append(" ...(已截断)"); break; }
+
+                string key = "?";
+                try { key = g.Proto?.Key; } catch { }
+                int obey = -1, flirt = -1, star = -1;
+                try
+                {
+                    var info = g.Info;
+                    if (info != null) { obey = info.Obey; flirt = info.FlirtCount; star = info.FavorabilityStar; }
+                }
+                catch (Exception ex) { sb.Append($" [{key}] 读 InfoGirl 失败: {ex.GetType().Name};"); continue; }
+
+                string curt = "CurtProtoObay=null";
+                try
+                {
+                    var po = g.CurtProtoObay;
+                    if (po != null)
+                        curt = $"CurtProtoObay[{po.Key}] Limit={po.Limit} Reduce={po.Reduce} " +
+                               $"ObeyMax={po.ObeyMax} FlirtIncre={po.FlirtIncre} " +
+                               $"CostTime={po.CostTime} CostRP={po.CostRP} ItemCost={po.ItemCost} " +
+                               $"推算剩余={(flirt < 0 ? "?" : (po.Limit - flirt).ToString())}";
+                }
+                catch (Exception ex) { curt = "CurtProtoObay 读取失败: " + ex.GetType().Name; }
+
+                sb.Append($" [{key}] Obey={obey} FlirtCount={flirt} Star={star} | {curt};");
+            }
+            sb.Append($" GirlMgr.Girls 共 {gi} 个。");
             QteTrainerPlugin.LogSource?.LogInfo(sb.ToString());
         }
 
@@ -2863,14 +2969,19 @@ namespace QteTrainer
                     : "调教次数: 游戏原值 (点击改为不下降)"))
                 TrainerActions.ToggleObeyUnlimited();
 
-            if (GUILayout.Button("把当前调教配置表打到日志 (排查用)"))
+            GUILayout.Label("排查用 (功能没生效时请点这三个, 然后把日志发出来):", GUI.skin.box);
+            if (GUILayout.Button("① 打印调教状态 (Obey / FlirtCount / 剩余次数)"))
+                TrainerActions.DumpTrainState();
+            if (GUILayout.Button("② 打印 ProtoObey 配置表"))
                 TrainerActions.DumpProtoObey();
+            if (GUILayout.Button("③ 打印 ProtoMgr 里注册了哪些表"))
+                TrainerActions.DumpProtoMgrTables();
 
             GUILayout.Label("当前生效的参数 (在 cfg 文件里改, 改完重进游戏):", GUI.skin.box);
             GUILayout.Label($"  Train/Limit = {QteTrainerPlugin.ObeyLimit.Value}   局内次数上限 (0=不改上限, 只把 Reduce 设 0)");
             GUILayout.Label($"  Train/NoReduce = {QteTrainerPlugin.ObeyNoReduce.Value}   true=次数不再下降");
             GUILayout.Label($"  Train/ObeyTarget = {QteTrainerPlugin.ObeyTarget.Value}   一键通关写入的服从度 (0=用表里最大的 ObeyMax)");
-            GUILayout.Label($"  Train/FlirtCount = {QteTrainerPlugin.FlirtCountTarget.Value}   一键通关写入的调教次数");
+            GUILayout.Label($"  Train/SetFlirtCount = {QteTrainerPlugin.FlirtCountTarget.Value}   写入的已调教次数 (0=清空=次数全满, -1=不改)");
             GUILayout.Label($"  Train/FreeCost = {QteTrainerPlugin.TrainFreeCost.Value}   true=调教不消耗时间/体力/道具");
         }
 
