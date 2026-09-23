@@ -1464,6 +1464,57 @@ namespace QteTrainer
             QteTrainerPlugin.LogSource?.LogInfo(sb.ToString());
         }
 
+        /// <summary>
+        /// 读值定位: 对场景里每个活着的 Playable 系控制器, 打印它名字里带
+        /// Progress/Counter/Count/Remain/Times/Left/Speed 的数值属性当前值。
+        /// 调教界面打开时, 哪个对象的哪个属性 = 心形百分比(约1.4) 和手的计数(9),
+        /// 哪个就是调教控制器 + 目标字段。
+        /// </summary>
+        public static void DumpPlayableState()
+        {
+            var types = new List<Type>
+            {
+                typeof(Game.BathePlayer), typeof(Game.BuildPlayer), typeof(Game.CompetitionPlayer),
+                typeof(Game.DredgePlayer), typeof(Game.EncounterFreePlayer), typeof(Game.EncounterPlayer),
+                typeof(Game.FlirtPlayer), typeof(Game.NeedlePlayer), typeof(Game.ObservePlayer),
+                typeof(Game.PlayablePlayer), typeof(Game.ProductPlayer), typeof(Game.SalesBoxPlayer),
+                typeof(Game.SleepPlayer), typeof(Game.StoryPlayer), typeof(Game.TouchPlayer),
+                typeof(Game.TrainPlayer), typeof(Game.TranslatePlayer), typeof(Game.WorkPlayer),
+                typeof(Game.PlayableForm),
+            };
+            var sb = new StringBuilder("Playable 状态读值: ");
+            int printed = 0;
+            foreach (var t in types)
+            {
+                foreach (var o in FindAll(t))
+                {
+                    if (o == null) continue;
+                    var rt = o.GetType();
+                    foreach (var pi in rt.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+                    {
+                        if (!pi.CanRead) continue;
+                        string nm = pi.Name;
+                        if (!(nm.IndexOf("Progress", StringComparison.OrdinalIgnoreCase) >= 0
+                              || nm.IndexOf("Counter", StringComparison.OrdinalIgnoreCase) >= 0
+                              || nm.IndexOf("Count", StringComparison.OrdinalIgnoreCase) >= 0
+                              || nm.IndexOf("Remain", StringComparison.OrdinalIgnoreCase) >= 0
+                              || nm.IndexOf("Times", StringComparison.OrdinalIgnoreCase) >= 0
+                              || nm.IndexOf("Left", StringComparison.OrdinalIgnoreCase) >= 0))
+                            continue;
+                        try
+                        {
+                            object v = pi.GetValue(o, null);
+                            if (v == null) continue;
+                            sb.Append($"[{rt.Name}.{nm}={v}] ");
+                            if (++printed > 60) { sb.Append("...(截断)"); QteTrainerPlugin.LogSource?.LogInfo(sb.ToString()); return; }
+                        }
+                        catch { }
+                    }
+                }
+            }
+            QteTrainerPlugin.LogSource?.LogInfo(sb.ToString());
+        }
+
         /// <summary>打印小游戏当前状态, 用来确认哪个字段是那个 9/10 计数。</summary>
         public static void DumpMiniGame()
         {
@@ -3234,6 +3285,8 @@ namespace QteTrainer
             GUILayout.EndHorizontal();
             if (GUILayout.Button("扫描场景对象 (定位调教控制器, 发日志用)"))
                 TrainerActions.DumpSceneObjects();
+            if (GUILayout.Button("读值定位 (心形%/手计数 是哪个字段)"))
+                TrainerActions.DumpPlayableState();
 
             GUILayout.Label("排查用 (功能没生效时请点这些, 然后把日志发出来):", GUI.skin.box);
             if (GUILayout.Button("打印小游戏状态 (看 9/10 计数是哪个字段)"))
