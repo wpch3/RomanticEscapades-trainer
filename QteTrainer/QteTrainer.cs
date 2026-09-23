@@ -56,6 +56,13 @@ namespace QteTrainer
         public static ConfigEntry<bool> ObeyNoReduce;
         public static ConfigEntry<int> ObeyTarget;
         public static ConfigEntry<int> FlirtCountTarget;
+        public static ConfigEntry<bool> TrainFreeCost;
+        // ---- 金钱 / 外观 / 任务 ----
+        public static ConfigEntry<string> SetMoneyKey;
+        public static ConfigEntry<string> UnlockBodyKey;
+        public static ConfigEntry<string> FinishTasksKey;
+        public static ConfigEntry<int> MoneyGold;
+        public static ConfigEntry<int> MoneyExp;
 
         /// <summary>
         /// 总开关。只有它为 true 时, 任何 Harmony 补丁效果与面板绘制才会真正生效。
@@ -118,6 +125,12 @@ namespace QteTrainer
             ObeyNoReduce    = Config.Bind("Train", "NoReduce", true, "true=把所有 ProtoObey.Reduce 设为 0, 局内次数不再下降(直到一局通关)");
             ObeyTarget      = Config.Bind("Train", "ObeyTarget", 0, "一键通关时写入的服从度。0=用表里最大的 ObeyMax");
             FlirtCountTarget= Config.Bind("Train", "FlirtCount", 999, "一键通关时写入的调教次数(FlirtCount)");
+            TrainFreeCost   = Config.Bind("Train", "FreeCost", true, "true=调教不消耗时间/体力/道具(CostTime、CostRP、ItemCost 全设 0)");
+            SetMoneyKey     = Config.Bind("Master", "SetMoneyKey", "F3", "金币/经验拉满热键");
+            UnlockBodyKey   = Config.Bind("Master", "UnlockBodyKey", "F4", "解锁全部身体外观热键");
+            FinishTasksKey  = Config.Bind("Master", "FinishTasksKey", "F5", "任务目标一键完成热键");
+            MoneyGold       = Config.Bind("Money", "Gold", 9999999, "F3 写入的金币数量");
+            MoneyExp        = Config.Bind("Money", "Exp", 9999999, "F3 写入的经验数量");
 
             // 关键: 每次启动都把总开关重置为关闭。
             // 上一次会话保存下来的 Enabled=true / ShowPanel=true 不会带进这次启动,
@@ -1000,6 +1013,9 @@ namespace QteTrainer
             public ProtoObey Proto;
             public int Limit;
             public int Reduce;
+            public float CostTime;
+            public float CostRP;
+            public int ItemCost;
         }
 
         private static readonly List<ObeyBackup> _obeyBackup = new List<ObeyBackup>();
@@ -1015,6 +1031,7 @@ namespace QteTrainer
 
             int newLimit = QteTrainerPlugin.ObeyLimit.Value;
             bool noReduce = QteTrainerPlugin.ObeyNoReduce.Value;
+            bool freeCost = QteTrainerPlugin.TrainFreeCost.Value;
             int changed = 0;
             var detail = new List<string>();
 
@@ -1024,19 +1041,35 @@ namespace QteTrainer
                 {
                     int oldLimit = p.Limit;
                     int oldReduce = p.Reduce;
+                    float oldTime = p.CostTime;
+                    float oldRP = p.CostRP;
+                    int oldItem = p.ItemCost;
                     bool backed = false;
                     foreach (var b in _obeyBackup)
                         if (ReferenceEquals(b.Proto, p)) { backed = true; break; }
                     if (!backed)
-                        _obeyBackup.Add(new ObeyBackup { Proto = p, Limit = oldLimit, Reduce = oldReduce });
+                        _obeyBackup.Add(new ObeyBackup
+                        {
+                            Proto = p, Limit = oldLimit, Reduce = oldReduce,
+                            CostTime = oldTime, CostRP = oldRP, ItemCost = oldItem
+                        });
 
                     bool dirty = false;
                     if (noReduce && oldReduce != 0) { p.Reduce = 0; dirty = true; }
                     if (newLimit > 0 && oldLimit != newLimit) { p.Limit = newLimit; dirty = true; }
+                    // 消耗清零: CostTime/CostRP 是 float, ItemCost 是 int。
+                    if (freeCost)
+                    {
+                        if (oldTime != 0f) { p.CostTime = 0f; dirty = true; }
+                        if (oldRP != 0f) { p.CostRP = 0f; dirty = true; }
+                        if (oldItem != 0) { p.ItemCost = 0; dirty = true; }
+                    }
                     if (dirty) changed++;
 
                     if (detail.Count < 8)
-                        detail.Add($"[{p.Key}] Limit {oldLimit}->{p.Limit}, Reduce {oldReduce}->{p.Reduce}, ObeyMax {p.ObeyMax}");
+                        detail.Add($"[{p.Key}] Limit {oldLimit}->{p.Limit}, Reduce {oldReduce}->{p.Reduce}, " +
+                                   $"CostTime {oldTime}->{p.CostTime}, CostRP {oldRP}->{p.CostRP}, " +
+                                   $"ItemCost {oldItem}->{p.ItemCost}, ObeyMax {p.ObeyMax}");
                 }
                 catch (Exception ex)
                 {
@@ -1047,7 +1080,7 @@ namespace QteTrainer
             ObeyUnlimited = true;
             QteTrainerPlugin.LogSource?.LogInfo(
                 $"调教局内次数已修改: 共 {protos.Count} 条配置, 实际改动 {changed} 条 " +
-                $"(Limit->{(newLimit > 0 ? newLimit.ToString() : "不改")}, Reduce->0={noReduce})。" +
+                $"(Limit->{(newLimit > 0 ? newLimit.ToString() : "不改")}, Reduce->0={noReduce}, 消耗清零={freeCost})。" +
                 (detail.Count > 0 ? " 明细: " + string.Join(" | ", detail.ToArray()) : ""));
             return changed;
         }
@@ -1058,7 +1091,15 @@ namespace QteTrainer
             int restored = 0;
             foreach (var b in _obeyBackup)
             {
-                try { b.Proto.Limit = b.Limit; b.Proto.Reduce = b.Reduce; restored++; }
+                try
+                {
+                    b.Proto.Limit = b.Limit;
+                    b.Proto.Reduce = b.Reduce;
+                    b.Proto.CostTime = b.CostTime;
+                    b.Proto.CostRP = b.CostRP;
+                    b.Proto.ItemCost = b.ItemCost;
+                    restored++;
+                }
                 catch (Exception ex)
                 {
                     QteTrainerPlugin.LogSource?.LogWarning($"还原 ProtoObey 失败: {ex.GetType().Name}: {ex.Message}");
@@ -1233,6 +1274,336 @@ namespace QteTrainer
                 }
             }
             QteTrainerPlugin.LogSource?.LogInfo(sb.ToString());
+        }
+
+        /* --------------------------------------------------------------------
+         * 金钱 (Game.Package / Game.Item)
+         *
+         *   Game.Package : UnityEngine.MonoBehaviour
+         *       static Package Instance {get;set;}
+         *       List<Item> Items {get;}
+         *       Item Gold {get;}          金币就是一个 Item
+         *       Item Exp  {get;}          经验同理
+         *       Item FindItem(string) / int GetItemCount(string) / Item AddItem(InfoItem)
+         *   Game.Item : Il2CppSystem.Object
+         *       int Count {get;set;}      <-- 直接写这个
+         *
+         * 也就是说"钱"不是独立字段, 而是背包里的一个 Item, 改 Item.Count 就行。
+         * -------------------------------------------------------------------- */
+        public static int SetMoney(int gold, int exp)
+        {
+            Package pkg = null;
+            try { pkg = Package.Instance; }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"Package.Instance 读取失败: {ex.GetType().Name}: {ex.Message}");
+            }
+            if (pkg == null)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning("Package.Instance 为 null(还没进入正常游戏场景?)。");
+                return 0;
+            }
+
+            int done = 0;
+            try
+            {
+                var g = pkg.Gold;
+                if (g != null)
+                {
+                    int before = g.Count;
+                    g.Count = gold;
+                    QteTrainerPlugin.LogSource?.LogInfo($"金币 {before} -> {g.Count}。");
+                    done++;
+                }
+                else
+                {
+                    QteTrainerPlugin.LogSource?.LogWarning(
+                        "背包里还没有金币条目(Package.Gold 为 null)。先在游戏里拿到一次金币再按。");
+                }
+            }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"改金币失败: {ex.GetType().Name}: {ex.Message}");
+            }
+            try
+            {
+                var e = pkg.Exp;
+                if (e != null)
+                {
+                    int before = e.Count;
+                    e.Count = exp;
+                    QteTrainerPlugin.LogSource?.LogInfo($"经验 {before} -> {e.Count}。");
+                    done++;
+                }
+            }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"改经验失败: {ex.GetType().Name}: {ex.Message}");
+            }
+            return done;
+        }
+
+        /* --------------------------------------------------------------------
+         * 解锁全部身体外观
+         *
+         * 三张表都是 ProtoBase 子类, 而且结构一样:
+         *   ProtoBodyDec        static List<ProtoBodyDec>        GetDecs()
+         *   ProtoBodyParttern   static List<ProtoBodyParttern>   GetPartterns()
+         *   ProtoBodyPubicHair  static List<ProtoBodyPubicHair>  GetPubicHairs()
+         * 每张表都有:
+         *   bool   IsUnlock   {get;}    只读, 是算出来的
+         *   string UnlockItem {get;set;} 解锁所需的道具  <-- 可写, 清空即解锁
+         *
+         * IsUnlock 只读, 所以不能直接写"已解锁"; 但 UnlockItem 可写, 清空它之后
+         * IsUnlock 的计算结果就会翻过来。改完会把前后 IsUnlock 都打到日志里,
+         * 一眼就能看出这条路走没走通。原值有备份, 可以还原。
+         * -------------------------------------------------------------------- */
+        public static bool BodyUnlocked { get; private set; }
+
+        private sealed class BodyBackup
+        {
+            public object Obj;
+            public string UnlockItem;
+        }
+
+        private static readonly List<BodyBackup> _bodyBackup = new List<BodyBackup>();
+
+        public static int UnlockAllBodyLooks()
+        {
+            int total = 0;
+            total += UnlockBodyTable("ProtoBodyDec", SafeStaticList(typeof(ProtoBodyDec), "GetDecs"));
+            total += UnlockBodyTable("ProtoBodyParttern", SafeStaticList(typeof(ProtoBodyParttern), "GetPartterns"));
+            total += UnlockBodyTable("ProtoBodyPubicHair", SafeStaticList(typeof(ProtoBodyPubicHair), "GetPubicHairs"));
+            BodyUnlocked = true;
+            QteTrainerPlugin.LogSource?.LogInfo($"解锁身体外观完成: 现在已解锁 {total} 项。");
+            return total;
+        }
+
+        public static int RestoreBodyLooks()
+        {
+            int restored = 0;
+            foreach (var b in _bodyBackup)
+            {
+                try
+                {
+                    b.Obj.GetType().GetProperty("UnlockItem").SetValue(b.Obj, b.UnlockItem, null);
+                    restored++;
+                }
+                catch (Exception ex)
+                {
+                    QteTrainerPlugin.LogSource?.LogWarning($"还原外观解锁失败: {ex.GetType().Name}: {ex.Message}");
+                }
+            }
+            _bodyBackup.Clear();
+            BodyUnlocked = false;
+            QteTrainerPlugin.LogSource?.LogInfo($"身体外观解锁条件已还原 {restored} 项。");
+            return restored;
+        }
+
+        private static object SafeStaticList(Type t, string methodName)
+        {
+            try
+            {
+                var mi = t.GetMethod(methodName, BindingFlags.Public | BindingFlags.Static);
+                if (mi == null)
+                {
+                    QteTrainerPlugin.LogSource?.LogWarning($"{t.Name}.{methodName}() 找不到。");
+                    return null;
+                }
+                return mi.Invoke(null, null);
+            }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"{t.Name}.{methodName}() 调用失败: {ex.GetType().Name}: {ex.Message}");
+                return null;
+            }
+        }
+
+        private static int UnlockBodyTable(string label, object listObj)
+        {
+            if (listObj == null) return 0;
+            int total = 0, already = 0, flipped = 0, stillLocked = 0;
+            foreach (var o in EnumerateAny(listObj))
+            {
+                if (o == null) continue;
+                total++;
+                var t = o.GetType();
+                try
+                {
+                    var isUnlockProp = t.GetProperty("IsUnlock");
+                    bool before = false;
+                    try { before = (bool)isUnlockProp.GetValue(o, null); } catch { }
+                    if (before) { already++; continue; }
+
+                    var unlockProp = t.GetProperty("UnlockItem");
+                    if (unlockProp == null) { stillLocked++; continue; }
+
+                    string old = unlockProp.GetValue(o, null) as string;
+                    bool backed = false;
+                    foreach (var b in _bodyBackup)
+                        if (ReferenceEquals(b.Obj, o)) { backed = true; break; }
+                    if (!backed)
+                        _bodyBackup.Add(new BodyBackup { Obj = o, UnlockItem = old });
+
+                    unlockProp.SetValue(o, string.Empty, null);
+
+                    bool after = false;
+                    try { after = (bool)isUnlockProp.GetValue(o, null); } catch { }
+                    if (after) flipped++; else stillLocked++;
+                }
+                catch (Exception ex)
+                {
+                    QteTrainerPlugin.LogSource?.LogWarning($"{label} 某一项处理失败: {ex.GetType().Name}: {ex.Message}");
+                }
+            }
+            QteTrainerPlugin.LogSource?.LogInfo(
+                $"{label}: 共 {total} 项, 原本已解锁 {already}, 本次翻成已解锁 {flipped}, 仍然锁定 {stillLocked}。");
+            return already + flipped;
+        }
+
+        /* --------------------------------------------------------------------
+         * 任务目标一键完成
+         *
+         *   Game.InfoMgr : Singleton<InfoMgr>
+         *       Dictionary<string, InfoBase> Infos {get;}
+         *   Game.InfoTask : InfoProtoBase
+         *       Il2CppReferenceArray<InfoTaskGoal> Goals {get;set;}
+         *       Game.ProtoTask Proto
+         *   Game.InfoTaskGoal : InfoProtoBase
+         *       float Progress    {get;set;}   <-- 可写
+         *       float ProgressMax {get;}
+         *       bool  IsProgressFill {get;}
+         *       FinishState State     {get;set;}
+         *       FinishState InfoState {get;set;}
+         *   Game.TaskMgr : Singleton<TaskMgr>
+         *       Task GetActiveTask(string)
+         *   Game.Task
+         *       bool IsAllGoalFinish();  void Succ();
+         *
+         * FinishState 的具体枚举值没能从元数据里读出来(dnfile 这个版本取不到 Constant),
+         * 所以运行时用 Enum.GetValues 按名字找 Finish/Succ/Done/Complete, 找不到就取最大值。
+         * -------------------------------------------------------------------- */
+        public static int FinishAllTasks()
+        {
+            int tasks = 0, goals = 0, succeeded = 0;
+
+            object infoMgr = GetSingleton(typeof(InfoMgr));
+            if (infoMgr == null)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning("InfoMgr.Instance 为 null, 拿不到任务列表。");
+                return 0;
+            }
+
+            object infos = ReflectGet(infoMgr, "Infos");
+            if (infos == null)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning("InfoMgr.Infos 为 null。");
+                return 0;
+            }
+
+            object taskMgr = null;
+            try { taskMgr = GetSingleton(typeof(TaskMgr)); } catch { }
+
+            foreach (var pair in EnumerateAny(infos))
+            {
+                object v = PairPart(pair, "Value");
+                var info = v as InfoTask;
+                if (info == null) continue;
+                tasks++;
+
+                try
+                {
+                    foreach (var g in EnumerateAny(ReflectGet(info, "Goals")))
+                    {
+                        var goal = g as InfoTaskGoal;
+                        if (goal == null) continue;
+                        goals++;
+                        float max = 0f;
+                        try { max = goal.ProgressMax; } catch { }
+                        try { goal.Progress = max > 0f ? max : 1f; }
+                        catch (Exception ex)
+                        {
+                            QteTrainerPlugin.LogSource?.LogWarning($"写 InfoTaskGoal.Progress 失败: {ex.GetType().Name}: {ex.Message}");
+                        }
+                        SetEnumPropFinished(goal, "State");
+                        SetEnumPropFinished(goal, "InfoState");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    QteTrainerPlugin.LogSource?.LogWarning($"遍历 InfoTask.Goals 失败: {ex.GetType().Name}: {ex.Message}");
+                }
+
+                // 正在进行中的任务, 再让游戏自己走一遍成功流程(会发奖励)。
+                if (taskMgr != null)
+                {
+                    string key = null;
+                    try { key = info.Proto?.Key; } catch { }
+                    if (string.IsNullOrWhiteSpace(key)) continue;
+                    try
+                    {
+                        var mi = taskMgr.GetType().GetMethod("GetActiveTask");
+                        var task = mi != null ? mi.Invoke(taskMgr, new object[] { key }) : null;
+                        if (task == null) continue;
+                        var succ = task.GetType().GetMethod("Succ");
+                        if (succ != null) { succ.Invoke(task, null); succeeded++; }
+                    }
+                    catch (Exception ex)
+                    {
+                        QteTrainerPlugin.LogSource?.LogWarning($"Task.Succ({key}) 失败: {ex.GetType().Name}: {ex.Message}");
+                    }
+                }
+            }
+
+            QteTrainerPlugin.LogSource?.LogInfo(
+                $"任务一键完成: 处理 {tasks} 个任务 / {goals} 个目标, 其中 {succeeded} 个活动任务走了 Succ()。");
+            return tasks;
+        }
+
+        /// <summary>
+        /// 把一个枚举属性设成"表示完成"的那个值。
+        /// 先按名字找 Finish/Succ/Done/Complete, 找不到就取数值最大的。
+        /// </summary>
+        private static bool SetEnumPropFinished(object target, string propName)
+        {
+            if (target == null) return false;
+            try
+            {
+                var pi = target.GetType().GetProperty(propName,
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (pi == null || !pi.CanWrite) return false;
+
+                var et = pi.PropertyType;
+                object best = null;
+                long bestVal = long.MinValue;
+                foreach (var v in Enum.GetValues(et))
+                {
+                    string n = Enum.GetName(et, v) ?? string.Empty;
+                    if (best == null &&
+                        (n.IndexOf("Finish", StringComparison.OrdinalIgnoreCase) >= 0
+                         || n.IndexOf("Succ", StringComparison.OrdinalIgnoreCase) >= 0
+                         || n.IndexOf("Done", StringComparison.OrdinalIgnoreCase) >= 0
+                         || n.IndexOf("Complete", StringComparison.OrdinalIgnoreCase) >= 0))
+                    {
+                        best = v;
+                    }
+                    try
+                    {
+                        long lv = Convert.ToInt64(v);
+                        if (lv > bestVal) bestVal = lv;
+                    }
+                    catch { }
+                }
+                if (best == null && bestVal > long.MinValue) best = Enum.ToObject(et, bestVal);
+                if (best == null) return false;
+                pi.SetValue(target, best, null);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"设置 {propName} 失败: {ex.GetType().Name}: {ex.Message}");
+                return false;
+            }
         }
 
         /* --------------------------------------------------------------------
@@ -1680,6 +2051,7 @@ namespace QteTrainer
             if (!enabled)
             {
                 if (ObeyUnlimited) RestoreObeyLimit();
+                if (BodyUnlocked) RestoreBodyLooks();
                 if (CursorForced) SetCursorForced(false);
             }
         }
@@ -1799,7 +2171,9 @@ namespace QteTrainer
                     $"总开关 = {QteTrainerPlugin.ToggleKey.Value}, 面板 = {QteTrainerPlugin.PanelKey.Value}, " +
                     $"添加全部物品 = {QteTrainerPlugin.AddItemsKey.Value}, 鼠标 = {QteTrainerPlugin.CursorKey.Value}, " +
                     $"解锁地点 = {QteTrainerPlugin.UnlockBuildKey.Value}, 上/下一个地点 = {QteTrainerPlugin.TpPrevBuildKey.Value}/{QteTrainerPlugin.TpNextBuildKey.Value}, " +
-                    $"调教一键通关 = {QteTrainerPlugin.TrainClearKey.Value}, 调教次数不下降 = {QteTrainerPlugin.TrainLimitKey.Value}");
+                    $"调教一键通关 = {QteTrainerPlugin.TrainClearKey.Value}, 调教次数不下降 = {QteTrainerPlugin.TrainLimitKey.Value}, " +
+                    $"金币经验 = {QteTrainerPlugin.SetMoneyKey.Value}, 解锁外观 = {QteTrainerPlugin.UnlockBodyKey.Value}, " +
+                    $"任务完成 = {QteTrainerPlugin.FinishTasksKey.Value}");
             }
 
             if (Pressed(kb, ToggleBinding, QteTrainerPlugin.ToggleKey.Value))
@@ -1870,6 +2244,25 @@ namespace QteTrainer
                 return true;
             }
 
+            if (QteTrainerPlugin.On && Pressed(kb, MoneyBinding, QteTrainerPlugin.SetMoneyKey.Value))
+            {
+                TrainerActions.SetMoney(QteTrainerPlugin.MoneyGold.Value, QteTrainerPlugin.MoneyExp.Value);
+                return true;
+            }
+
+            if (QteTrainerPlugin.On && Pressed(kb, BodyBinding, QteTrainerPlugin.UnlockBodyKey.Value))
+            {
+                if (TrainerActions.BodyUnlocked) TrainerActions.RestoreBodyLooks();
+                else TrainerActions.UnlockAllBodyLooks();
+                return true;
+            }
+
+            if (QteTrainerPlugin.On && Pressed(kb, TasksBinding, QteTrainerPlugin.FinishTasksKey.Value))
+            {
+                TrainerActions.FinishAllTasks();
+                return true;
+            }
+
             return true;
         }
 
@@ -1882,6 +2275,9 @@ namespace QteTrainer
         private static readonly KeyBinding TpPrevBuildBinding = new KeyBinding();
         private static readonly KeyBinding TrainClearBinding = new KeyBinding();
         private static readonly KeyBinding TrainLimitBinding = new KeyBinding();
+        private static readonly KeyBinding MoneyBinding = new KeyBinding();
+        private static readonly KeyBinding BodyBinding = new KeyBinding();
+        private static readonly KeyBinding TasksBinding = new KeyBinding();
 
         private static bool Pressed(UnityEngine.InputSystem.Keyboard kb, KeyBinding binding, string keyName)
         {
@@ -2025,6 +2421,25 @@ namespace QteTrainer
                     && UnityEngine.Input.GetKeyDown(tl))
                 {
                     TrainerActions.ToggleObeyUnlimited();
+                    return;
+                }
+                if (Enum.TryParse((QteTrainerPlugin.SetMoneyKey.Value ?? string.Empty).Trim(), true, out KeyCode mg)
+                    && UnityEngine.Input.GetKeyDown(mg))
+                {
+                    TrainerActions.SetMoney(QteTrainerPlugin.MoneyGold.Value, QteTrainerPlugin.MoneyExp.Value);
+                    return;
+                }
+                if (Enum.TryParse((QteTrainerPlugin.UnlockBodyKey.Value ?? string.Empty).Trim(), true, out KeyCode ub2)
+                    && UnityEngine.Input.GetKeyDown(ub2))
+                {
+                    if (TrainerActions.BodyUnlocked) TrainerActions.RestoreBodyLooks();
+                    else TrainerActions.UnlockAllBodyLooks();
+                    return;
+                }
+                if (Enum.TryParse((QteTrainerPlugin.FinishTasksKey.Value ?? string.Empty).Trim(), true, out KeyCode ft)
+                    && UnityEngine.Input.GetKeyDown(ft))
+                {
+                    TrainerActions.FinishAllTasks();
                     return;
                 }
             }
@@ -2188,18 +2603,20 @@ namespace QteTrainer
                 TrainerActions.ToggleCursorForced();
             GUILayout.EndHorizontal();
 
-            // 分页标签: 内容分成四页, 单页高度就不会超出屏幕。
+            // 分页标签: 内容分成五页, 单页高度就不会超出屏幕。
             GUILayout.BeginHorizontal();
             PageTab(0, "功能");
             PageTab(1, "传送");
             PageTab(2, "办事地点");
             PageTab(3, "调教");
+            PageTab(4, "其它");
             GUILayout.EndHorizontal();
 
             if (panelPage == 0) DrawPageCheats();
             else if (panelPage == 1) DrawPageTeleport();
             else if (panelPage == 2) DrawPageBuild();
-            else DrawPageTrain();
+            else if (panelPage == 3) DrawPageTrain();
+            else DrawPageMisc();
 
             GUILayout.EndArea();
         }
@@ -2454,6 +2871,36 @@ namespace QteTrainer
             GUILayout.Label($"  Train/NoReduce = {QteTrainerPlugin.ObeyNoReduce.Value}   true=次数不再下降");
             GUILayout.Label($"  Train/ObeyTarget = {QteTrainerPlugin.ObeyTarget.Value}   一键通关写入的服从度 (0=用表里最大的 ObeyMax)");
             GUILayout.Label($"  Train/FlirtCount = {QteTrainerPlugin.FlirtCountTarget.Value}   一键通关写入的调教次数");
+            GUILayout.Label($"  Train/FreeCost = {QteTrainerPlugin.TrainFreeCost.Value}   true=调教不消耗时间/体力/道具");
+        }
+
+        /* --------------------------------------------------------------------
+         * 其它: 金钱 / 外观解锁 / 任务完成
+         * -------------------------------------------------------------------- */
+        private void DrawPageMisc()
+        {
+            GUILayout.Label(
+                $"无鼠标操作: {QteTrainerPlugin.SetMoneyKey.Value}=金币经验, " +
+                $"{QteTrainerPlugin.UnlockBodyKey.Value}=解锁外观, {QteTrainerPlugin.FinishTasksKey.Value}=任务完成",
+                GUI.skin.box);
+
+            if (GUILayout.Button($"金币 / 经验拉满 ({QteTrainerPlugin.MoneyGold.Value} / {QteTrainerPlugin.MoneyExp.Value})"))
+                TrainerActions.SetMoney(QteTrainerPlugin.MoneyGold.Value, QteTrainerPlugin.MoneyExp.Value);
+
+            if (GUILayout.Button(TrainerActions.BodyUnlocked
+                    ? "身体外观: 已全部解锁 (点击还原)"
+                    : "身体外观: 解锁全部 (花纹/阴毛/装饰)"))
+            {
+                if (TrainerActions.BodyUnlocked) TrainerActions.RestoreBodyLooks();
+                else TrainerActions.UnlockAllBodyLooks();
+            }
+
+            if (GUILayout.Button("任务目标一键完成 (进行中的任务会走 Succ 发奖励)"))
+                TrainerActions.FinishAllTasks();
+
+            GUILayout.Label("参数在 cfg 里改, 改完重进游戏:", GUI.skin.box);
+            GUILayout.Label($"  Money/Gold = {QteTrainerPlugin.MoneyGold.Value}   F3 写入的金币数量");
+            GUILayout.Label($"  Money/Exp  = {QteTrainerPlugin.MoneyExp.Value}   F3 写入的经验数量");
         }
 
         private void GotoByNumber(List<TrainerActions.BuildEntry> shown)
