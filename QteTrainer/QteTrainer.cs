@@ -1524,8 +1524,13 @@ namespace QteTrainer
         {
             var types = new List<Type>
             {
-                typeof(Game.PlayablePlayer), typeof(Game.EncounterPlayer), typeof(Game.EncounterFreePlayer),
-                typeof(Game.NeedlePlayer), typeof(Game.PlayableForm),
+                typeof(Game.TrainPlayer), typeof(Game.FlirtPlayer), typeof(Game.TouchPoint),
+                typeof(Game.ExerciseInfoForm), typeof(Game.PlayableForm), typeof(Game.InteractionForm),
+                typeof(Game.ObeyChangeForm), typeof(Game.DredgePlayer), typeof(Game.NeedlePlayer),
+                typeof(Game.AcupunctureForm), typeof(Game.BathePlayer), typeof(Game.SleepPlayer),
+                typeof(Game.WorkPlayer), typeof(Game.CompetitionPlayer), typeof(Game.CompetitionForm),
+                typeof(Game.PlayablePlayer), typeof(Game.ObservePlayer), typeof(Game.EncounterPlayer),
+                typeof(Game.EncounterFreePlayer),
             };
             var entries = new List<string>();
             foreach (var t in types)
@@ -1554,6 +1559,51 @@ namespace QteTrainer
                                 entries.Add($"[{rt.Name}.p_{pi.Name}={v}]");
                         }
                         catch { }
+                    }
+                }
+            }
+
+            // Pass 2: 进度/计数可能藏在表单里嵌套的非 Component 控制器对象中, 递归读一层。
+            var formTypes = new List<Type>
+            {
+                typeof(Game.PlayableForm), typeof(Game.InteractionForm),
+                typeof(Game.ExerciseInfoForm), typeof(Game.ObeyChangeForm),
+            };
+            foreach (var ft in formTypes)
+            {
+                foreach (var fo in FindAll(ft))
+                {
+                    if (fo == null) continue;
+                    var frt = fo.GetType();
+                    foreach (var ffi in frt.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                    {
+                        object sub = null;
+                        try { sub = ffi.GetValue(fo); } catch { continue; }
+                        if (sub == null) continue;
+                        var st = sub.GetType();
+                        if (st.Namespace != "Game") continue;
+                        if (sub is UnityEngine.Object) continue; // Component 在 Pass1 已扫
+                        foreach (var sfi in st.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                        {
+                            try
+                            {
+                                object v = sfi.GetValue(sub);
+                                if (v is int || v is float || v is double || v is long)
+                                    entries.Add($"[{frt.Name}.{ffi.Name}->{st.Name}.f_{sfi.Name}={v}]");
+                            }
+                            catch { }
+                        }
+                        foreach (var spi in st.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+                        {
+                            if (!spi.CanRead) continue;
+                            try
+                            {
+                                object v = spi.GetValue(sub, null);
+                                if (v is int || v is float || v is double || v is long)
+                                    entries.Add($"[{frt.Name}.{ffi.Name}->{st.Name}.p_{spi.Name}={v}]");
+                            }
+                            catch { }
+                        }
                     }
                 }
             }
