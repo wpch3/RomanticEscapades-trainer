@@ -434,6 +434,107 @@ Game.GirlMgr : Game.Singleton`1<GirlMgr>
 面板新增第四页「调教」，里面还有一个「把当前调教配置表打到日志」的按钮，
 用来核对游戏里的真实 `Limit` / `Reduce` / `ObeyMax`。
 
+## v1.7.0：金钱 / 外观解锁 / 任务完成 / 调教免消耗
+
+这一轮把之前列的四项全做了。所有类型和签名都是从 `Assembly-CSharp.dll` 元数据里 dump 的。
+
+### 关于「抽卡」——没有这个东西
+
+程序集里确实有 `Message.PlayerDrawALotteryReq/Resp`，但 `Message.*` 整个命名空间是一套
+protobuf 网络 DTO（程序集里同时有 `Google.Protobuf`），**里面一个采集相关的类型都没有**，
+和游戏界面对不上。真正的游戏系统全部在 `Game.*` 命名空间下，采集系统是实打实存在的：
+
+```
+Game.CollectionPoint / CollectionPointFish / CollectionPointItem
+Game.CollectionPointItemGrassViz  草
+Game.CollectionPointItemOreViz    矿
+Game.CollectionPointItemTimberViz 木
+Game.CollectionStuff / CollectionHidden / CollectionGenerator
+Game.ProtoSeed                    种植
+Game.InfoTaskGoalCollect / ProtoTaskGoalCollect / TaskGoalCollect
+```
+
+所以「抽卡」按你说的当采集随机数处理，插件不去碰它。
+
+### `F3` 金币 / 经验拉满
+
+钱不是独立字段，而是背包里的一个 `Item`：
+
+```
+Game.Package : UnityEngine.MonoBehaviour
+    static Package Instance {get;set;}
+    Item Gold {get;}     Item Exp {get;}
+Game.Item
+    int Count {get;set;}      <-- 直接写这个
+```
+
+所以 `Package.Instance.Gold.Count = N` 就是改钱。数量在 `Money/Gold`、`Money/Exp` 里配。
+如果 `Package.Gold` 还是 null（存档里从没拿到过金币），会打日志提示先在游戏里拿一次。
+
+### `F4` 解锁全部身体外观
+
+三张表结构一样，都是 `ProtoBase` 子类：
+
+```
+ProtoBodyDec        static List<ProtoBodyDec>        GetDecs()
+ProtoBodyParttern   static List<ProtoBodyParttern>   GetPartterns()
+ProtoBodyPubicHair  static List<ProtoBodyPubicHair>  GetPubicHairs()
+
+每一项都有:
+    bool   IsUnlock   {get;}      只读, 是算出来的
+    string UnlockItem {get;set;}  解锁所需道具  <-- 可写
+```
+
+`IsUnlock` 只读所以不能直接写「已解锁」，但 `UnlockItem` 可写 —— 清空它之后 `IsUnlock`
+的计算结果就会翻过来。日志会把每张表的 `原本已解锁 / 本次翻成已解锁 / 仍然锁定` 三个数
+都打出来，一眼能看出这条路走没走通。原值有备份，再按一次 `F4` 还原。
+
+### `F5` 任务目标一键完成
+
+```
+Game.InfoMgr : Singleton<InfoMgr>
+    Dictionary<string, InfoBase> Infos {get;}
+Game.InfoTask : InfoProtoBase
+    Il2CppReferenceArray<InfoTaskGoal> Goals {get;set;}
+Game.InfoTaskGoal : InfoProtoBase
+    float Progress    {get;set;}    <-- 可写
+    float ProgressMax {get;}
+    FinishState State / InfoState {get;set;}
+Game.TaskMgr : Singleton<TaskMgr>
+    Task GetActiveTask(string)
+Game.Task
+    bool IsAllGoalFinish();  void Succ();
+```
+
+做法：遍历 `InfoMgr.Infos` 里所有 `InfoTask`，把每个 goal 的 `Progress` 写成 `ProgressMax`，
+再把 `State` / `InfoState` 设成表示完成的那个枚举值；然后对正在进行中的任务调
+`TaskMgr.GetActiveTask(key).Succ()`，让游戏自己走一遍成功流程发奖励。
+
+`FinishState` 的具体枚举值没能从元数据里读出来（dnfile 这个版本取不到 `Constant` 表），
+所以运行时用 `Enum.GetValues` 按名字找 `Finish`/`Succ`/`Done`/`Complete`，找不到就取数值最大的。
+
+### `F2` 现在同时管消耗
+
+`Train/FreeCost`（默认 `true`）会把 `ProtoObey.CostTime`、`CostRP`、`ItemCost` 全设 0，
+和「次数不下降」一起走 `F2` 这一个开关，原值一起备份、一起还原。
+
+### 新增热键与配置
+
+| 键 | 配置项 | 作用 |
+|---|---|---|
+| F3 | `Master/SetMoneyKey` | 金币 / 经验拉满 |
+| F4 | `Master/UnlockBodyKey` | 解锁全部身体外观（再按还原） |
+| F5 | `Master/FinishTasksKey` | 任务目标一键完成 |
+
+| 配置项 | 默认 | 说明 |
+|---|---|---|
+| `Train/FreeCost` | `true` | 调教不消耗时间 / 体力 / 道具 |
+| `Money/Gold` | `9999999` | F3 写入的金币数量 |
+| `Money/Exp` | `9999999` | F3 写入的经验数量 |
+
+面板新增第五页「其它」。关总开关（`F8`）现在会把调教次数、调教消耗、外观解锁条件、
+强制显示的鼠标全部还原。
+
 ## 注意事项
 
 - 若同时使用原 xmod 的移速倍率，两处倍率会相乘；关掉其中一个即可。
