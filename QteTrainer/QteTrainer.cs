@@ -1304,14 +1304,52 @@ namespace QteTrainer
          * -------------------------------------------------------------------- */
         public static bool MiniGameAutoWin { get; private set; }
 
+        /// <summary>反射版 Resources.FindObjectsOfTypeAll<T>()(含非激活对象), 不依赖 T 是引用类型编译期约束。</summary>
+        private static Array FindAll(Type t)
+        {
+            try
+            {
+                foreach (var mi in typeof(UnityEngine.Resources).GetMethods())
+                {
+                    if (mi.Name != "FindObjectsOfTypeAll" || !mi.IsGenericMethodDefinition) continue;
+                    if (mi.GetParameters().Length != 0) continue;
+                    return (Array)mi.MakeGenericMethod(t).Invoke(null, null);
+                }
+            }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"FindObjectsOfTypeAll({t.Name}) 失败: {ex.GetType().Name}: {ex.Message}");
+            }
+            return new object[0];
+        }
+
         /// <summary>尝试抓到当前场景里的调教控制器, 抓不到返回 null。</summary>
         private static Game.TouchPlayer FindTouchPlayer()
         {
             try
             {
-                var tp = UnityEngine.Object.FindObjectOfType<Game.TouchPoint>();
-                if (tp == null) return null;
-                return tp.MyTouchPlayer;
+                // 1) TouchPoint -> MyTouchPlayer
+                foreach (var o in FindAll(typeof(Game.TouchPoint)))
+                {
+                    var tp = o as Game.TouchPoint;
+                    if (tp == null) continue;
+                    try { var pl = tp.MyTouchPlayer; if (pl != null) return pl; } catch { }
+                }
+                // 2) TouchPlayer 本体
+                foreach (var o in FindAll(typeof(Game.TouchPlayer)))
+                {
+                    var pl = o as Game.TouchPlayer;
+                    if (pl != null) return pl;
+                }
+                // 3) MiniGameForm 的私有字段 m_TouchPlayer
+                foreach (var o in FindAll(typeof(Game.MiniGameForm)))
+                {
+                    var f = o as Game.MiniGameForm;
+                    if (f == null) continue;
+                    var pl = ReflectGet(f, "m_TouchPlayer") as Game.TouchPlayer;
+                    if (pl != null) return pl;
+                }
+                return null;
             }
             catch (Exception ex)
             {
@@ -1333,9 +1371,9 @@ namespace QteTrainer
             bool done = false;
             try
             {
-                player.CurtProgressMale = 1f;
-                player.CurtProgressFemale = 1f;
-                player.CurtSweatProgress = 1f;
+                player.CurtProgressMale = 100f;
+                player.CurtProgressFemale = 100f;
+                player.CurtSweatProgress = 100f;
                 done = true;
             }
             catch (Exception ex)
@@ -1361,8 +1399,8 @@ namespace QteTrainer
             if (player == null) return;
             try
             {
-                player.CurtProgressMale = 1f;
-                player.CurtProgressFemale = 1f;
+                player.CurtProgressMale = 100f;
+                player.CurtProgressFemale = 100f;
             }
             catch { }
         }
@@ -1377,13 +1415,19 @@ namespace QteTrainer
         /// <summary>打印小游戏当前状态, 用来确认哪个字段是那个 9/10 计数。</summary>
         public static void DumpMiniGame()
         {
+            int nPoint = FindAll(typeof(Game.TouchPoint)).Length;
+            int nPlayer = FindAll(typeof(Game.TouchPlayer)).Length;
+            int nForm = FindAll(typeof(Game.MiniGameForm)).Length;
+            int nTrain = FindAll(typeof(Game.TrainPlayer)).Length;
             var player = FindTouchPlayer();
             if (player == null)
             {
-                QteTrainerPlugin.LogSource?.LogInfo("当前场景没有调教小游戏, 无状态可打印。");
+                QteTrainerPlugin.LogSource?.LogInfo(
+                    $"当前场景找不到调教控制器。场景对象计数: TouchPoint={nPoint}, TouchPlayer={nPlayer}, " +
+                    $"MiniGameForm={nForm}, TrainPlayer={nTrain}。请确认调教界面是打开的再点。");
                 return;
             }
-            var sb = new StringBuilder("小游戏状态: ");
+            var sb = new StringBuilder($"小游戏状态: 场景 TouchPoint={nPoint} TouchPlayer={nPlayer} MiniGameForm={nForm} TrainPlayer={nTrain}。");
             try { sb.Append($"ProgressMale={player.CurtProgressMale:F3} "); } catch { }
             try { sb.Append($"ProgressFemale={player.CurtProgressFemale:F3} "); } catch { }
             try { sb.Append($"PerfectCounter={player.CurtPerfectCounter} "); } catch { }
