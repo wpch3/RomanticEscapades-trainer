@@ -1284,6 +1284,121 @@ namespace QteTrainer
         /// 列出 ProtoMgr.Members 里注册的**所有**表(表名 + 条数)。
         /// 这是判断 Game.ProtoObey 到底有没有被注册进来的唯一可靠办法。
         /// </summary>
+        /* --------------------------------------------------------------------
+         * 调教小游戏(路径连线)直接通关
+         *
+         * 截图里的调教是一个连线小游戏: 右下角那只手的数字(9/10)是剩余可放置的
+         * 路径点数, 左下角心形是进度。这个计数是 TouchPlayer 的内部状态,
+         * 不在任何配置表里, 改 ProtoObey 影响不到它 —— 这就是之前"调教没生效"的根因。
+         *
+         * 干净的通关路径(全部是公开 API, 从元数据 dump 确认):
+         *   Game.TouchPoint : UnityEngine.MonoBehaviour     <-- 可以用 FindObjectOfType 抓
+         *       Game.TouchPlayer MyTouchPlayer {get;set;}
+         *   Game.TouchPlayer
+         *       float CurtProgressMale   {get;set;}
+         *       float CurtProgressFemale {get;set;}        左下角那个进度
+         *       void  TouchFinish()                        直接走结束流程
+         *
+         * 所以: 场景里抓一个 TouchPoint -> 拿 MyTouchPlayer -> 进度拉满 + TouchFinish(),
+         * 一次性通关, 完全绕过那个 10 次计数。
+         * -------------------------------------------------------------------- */
+        public static bool MiniGameAutoWin { get; private set; }
+
+        /// <summary>尝试抓到当前场景里的调教控制器, 抓不到返回 null。</summary>
+        private static Game.TouchPlayer FindTouchPlayer()
+        {
+            try
+            {
+                var tp = UnityEngine.Object.FindObjectOfType<Game.TouchPoint>();
+                if (tp == null) return null;
+                return tp.MyTouchPlayer;
+            }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"FindTouchPlayer 失败: {ex.GetType().Name}: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>一次性通关当前调教小游戏。返回是否抓到并执行。</summary>
+        public static bool FinishMiniGameOnce()
+        {
+            var player = FindTouchPlayer();
+            if (player == null)
+            {
+                QteTrainerPlugin.LogSource?.LogInfo(
+                    "场景里没有调教小游戏(找不到 TouchPoint)。请先在游戏里打开调教界面再按。");
+                return false;
+            }
+            bool done = false;
+            try
+            {
+                player.CurtProgressMale = 1f;
+                player.CurtProgressFemale = 1f;
+                player.CurtSweatProgress = 1f;
+                done = true;
+            }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"写小游戏进度失败: {ex.GetType().Name}: {ex.Message}");
+            }
+            try
+            {
+                player.TouchFinish();
+            }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"TouchFinish 失败: {ex.GetType().Name}: {ex.Message}");
+            }
+            QteTrainerPlugin.LogSource?.LogInfo($"调教小游戏一键通关已触发 (进度拉满={done})。");
+            return true;
+        }
+
+        /// <summary>每帧调用(仅当 MiniGameAutoWin 开): 把进度按住, 让小游戏自己判满。</summary>
+        public static void ApplyMiniGameAutoWin()
+        {
+            var player = FindTouchPlayer();
+            if (player == null) return;
+            try
+            {
+                player.CurtProgressMale = 1f;
+                player.CurtProgressFemale = 1f;
+            }
+            catch { }
+        }
+
+        public static void ToggleMiniGameAutoWin()
+        {
+            MiniGameAutoWin = !MiniGameAutoWin;
+            QteTrainerPlugin.LogSource?.LogInfo(
+                $"小游戏自动满进度: {(MiniGameAutoWin ? "开 (调教界面打开期间进度会被按住)" : "关")}。");
+        }
+
+        /// <summary>打印小游戏当前状态, 用来确认哪个字段是那个 9/10 计数。</summary>
+        public static void DumpMiniGame()
+        {
+            var player = FindTouchPlayer();
+            if (player == null)
+            {
+                QteTrainerPlugin.LogSource?.LogInfo("当前场景没有调教小游戏, 无状态可打印。");
+                return;
+            }
+            var sb = new StringBuilder("小游戏状态: ");
+            try { sb.Append($"ProgressMale={player.CurtProgressMale:F3} "); } catch { }
+            try { sb.Append($"ProgressFemale={player.CurtProgressFemale:F3} "); } catch { }
+            try { sb.Append($"PerfectCounter={player.CurtPerfectCounter} "); } catch { }
+            try { sb.Append($"TouchPointIndex={player.CurtTouchPointIndex} "); } catch { }
+            try
+            {
+                int n = 0;
+                foreach (var o in EnumerateAny(ReflectGet(player, "MyTouchPoints"))) n++;
+                sb.Append($"MyTouchPoints={n} ");
+            }
+            catch { }
+            try { sb.Append($"SweatProgress={player.CurtSweatProgress:F3} "); } catch { }
+            QteTrainerPlugin.LogSource?.LogInfo(sb.ToString());
+        }
+
         public static void DumpProtoMgrTables()
         {
             ProtoMgr mgr = null;
@@ -2159,6 +2274,7 @@ namespace QteTrainer
                 if (ObeyUnlimited) RestoreObeyLimit();
                 if (BodyUnlocked) RestoreBodyLooks();
                 if (CursorForced) SetCursorForced(false);
+                MiniGameAutoWin = false;
             }
         }
 
@@ -2340,7 +2456,9 @@ namespace QteTrainer
             // 调教一键通关 / 调教次数不下降。
             if (QteTrainerPlugin.On && Pressed(kb, TrainClearBinding, QteTrainerPlugin.TrainClearKey.Value))
             {
-                TrainerActions.MaxAllObey();
+                // 优先通关正在玩的连线小游戏; 没在玩游戏才改写数据(服从度)。
+                if (!TrainerActions.FinishMiniGameOnce())
+                    TrainerActions.MaxAllObey();
                 return true;
             }
 
@@ -2520,7 +2638,8 @@ namespace QteTrainer
                 if (Enum.TryParse((QteTrainerPlugin.TrainClearKey.Value ?? string.Empty).Trim(), true, out KeyCode tc)
                     && UnityEngine.Input.GetKeyDown(tc))
                 {
-                    TrainerActions.MaxAllObey();
+                    if (!TrainerActions.FinishMiniGameOnce())
+                        TrainerActions.MaxAllObey();
                     return;
                 }
                 if (Enum.TryParse((QteTrainerPlugin.TrainLimitKey.Value ?? string.Empty).Trim(), true, out KeyCode tl)
@@ -2605,6 +2724,10 @@ namespace QteTrainer
                 // 鼠标强制显示: 游戏(和 xmod)会每帧把光标改回锁定, 所以这里每帧按住。
                 if (TrainerActions.CursorForced)
                     TrainerActions.ApplyCursor();
+
+                // 小游戏自动满进度: 调教界面打开期间每帧把进度按住。
+                if (TrainerActions.MiniGameAutoWin)
+                    TrainerActions.ApplyMiniGameAutoWin();
             }
             catch (Exception ex)
             {
@@ -2969,7 +3092,16 @@ namespace QteTrainer
                     : "调教次数: 游戏原值 (点击改为不下降)"))
                 TrainerActions.ToggleObeyUnlimited();
 
-            GUILayout.Label("排查用 (功能没生效时请点这三个, 然后把日志发出来):", GUI.skin.box);
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("小游戏: 立即通关"))
+                TrainerActions.FinishMiniGameOnce();
+            if (GUILayout.Button(TrainerActions.MiniGameAutoWin ? "自动满进度: 开 (点击关)" : "自动满进度: 关 (点击开)"))
+                TrainerActions.ToggleMiniGameAutoWin();
+            GUILayout.EndHorizontal();
+
+            GUILayout.Label("排查用 (功能没生效时请点这些, 然后把日志发出来):", GUI.skin.box);
+            if (GUILayout.Button("打印小游戏状态 (看 9/10 计数是哪个字段)"))
+                TrainerActions.DumpMiniGame();
             if (GUILayout.Button("① 打印调教状态 (Obey / FlirtCount / 剩余次数)"))
                 TrainerActions.DumpTrainState();
             if (GUILayout.Button("② 打印 ProtoObey 配置表"))
