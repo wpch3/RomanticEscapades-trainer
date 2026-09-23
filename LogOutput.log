@@ -121,14 +121,14 @@
 [Message:AssemblyPatcher] Executing 0 patch(es)
 [Message:   BepInEx] Chainloader initialized
 [Debug  : Preloader] Runtime invoke pointer: 0x7FFF5AE39820
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AE39820 to 0x7FFF02283264
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AE39820 to 0x7FFF01D83264
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1AE40000
 [Debug  :DobbyDetour] Original: 7FFF5AE39820, Trampoline: 7FFF1AE40000, diff: 3FFF9820
 [Debug  : Preloader] Runtime invoke patched
 [Debug  :Il2CppInterop] il2cpp_object_get_virtual_method: 0x7FFF5AE39700
 [Debug  :Il2CppInterop] Object::GetVirtualMethod: 0x7FFF5AE537B0
 [Debug  :Il2CppInterop] GenericMethod::GetMethod found: 0x7FFF5AE60470
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AE60470 to 0x7FFF022832A4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AE60470 to 0x7FFF01D832A4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1AE70000
 [Debug  :DobbyDetour] Original: 7FFF5AE60470, Trampoline: 7FFF1AE70000, diff: 3FFF0470
 [Debug  :Il2CppInterop] il2cpp_image_get_class: 0x7FFF5AE393D0
@@ -136,11 +136,11 @@
 [Debug  :Il2CppInterop] imageGetTypeXrefs.Length: 2
 [Debug  :Il2CppInterop] getTypeInfoFromHandle: 7FFF5AE99B80
 [Debug  :Il2CppInterop] MetadataCache::GetTypeInfoFromTypeDefinitionIndex found: 0x7FFF5AEC6DC0
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AEC6DC0 to 0x7FFF022832E4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AEC6DC0 to 0x7FFF01D832E4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1AED0000
 [Debug  :DobbyDetour] Original: 7FFF5AEC6DC0, Trampoline: 7FFF1AED0000, diff: 3FFF6DC0
 [Debug  :Il2CppInterop] Class::GetDefaultFieldValue found: 0x7FFF5AEC5A60
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AEC5A60 to 0x7FFF02283324
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AEC5A60 to 0x7FFF01D83324
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1AED0020
 [Debug  :DobbyDetour] Original: 7FFF5AEC5A60, Trampoline: 7FFF1AED0020, diff: 3FFF5A40
 [Warning:Il2CppInterop] Class::Init signatures have been exhausted, using a substitute!
@@ -148,20 +148,20 @@
 [Debug  :Il2CppInterop] Class::Init: 0x7FFF5AE3A060
 [Debug  :Il2CppInterop] il2cpp_class_from_il2cpp_type: 0x7FFF5AE38C40
 [Debug  :Il2CppInterop] Class::FromIl2CppType found: 0x7FFF5AE969B0
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AE969B0 to 0x7FFF02283364
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AE969B0 to 0x7FFF01D83364
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1AED0040
 [Debug  :DobbyDetour] Original: 7FFF5AE969B0, Trampoline: 7FFF1AED0040, diff: 3FFC6970
 [Debug  :Il2CppInterop] il2cpp_class_from_name: 0x7FFF5AE38C50
 [Debug  :Il2CppInterop] Class::FromName found: 0x7FFF5AE96F10
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AE96F10 to 0x7FFF022833A4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AE96F10 to 0x7FFF01D833A4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1AED0060
 [Debug  :DobbyDetour] Original: 7FFF5AE96F10, Trampoline: 7FFF1AED0060, diff: 3FFC6EB0
 [Debug  :Il2CppInterop] GarbageCollector::RunFinalizer found: 0x7FFF5AE44650
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AE44650 to 0x7FFF022833E4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AE44650 to 0x7FFF01D833E4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1AE70020
 [Debug  :DobbyDetour] Original: 7FFF5AE44650, Trampoline: 7FFF1AE70020, diff: 3FFD4630
 [Info   :Il2CppInterop] Registered mono type Il2CppInterop.Runtime.DelegateSupport+Il2CppToMonoDelegateReference in il2cpp domain
-[Debug  :InteropManager] Preloaded 109 interop assemblies in 297ms
+[Debug  :InteropManager] Preloaded 109 interop assemblies in 398ms
 [Debug  :   BepInEx] Examining 'D:\steam\steamapps\common\RomanticEscapades\RE\BepInEx\plugins\QteTrainer.dll'
 [Debug  :   BepInEx] Skipping loading D:\steam\steamapps\common\RomanticEscapades\RE\BepInEx\plugins\xmod\runtimes\win-x64\native\capstone.dll because it's not a valid .NET assembly. Full error: Format of the executable (.exe) or library (.dll) is invalid.
 [Debug  :   BepInEx] Skipping loading D:\steam\steamapps\common\RomanticEscapades\RE\BepInEx\plugins\xmod\runtimes\win-x64\native\grpc_csharp_ext.x64.dll because it's not a valid .NET assembly. Full error: Format of the executable (.exe) or library (.dll) is invalid.
@@ -173,43 +173,43 @@
 [Warning:Il2CppInterop] Method Void GotoByNumber(System.Collections.Generic.List`1[QteTrainer.TrainerActions+BuildEntry]) on type QteTrainer.QteTrainerUi has unsupported parameter System.Collections.Generic.List`1[QteTrainer.TrainerActions+BuildEntry] shown of type System.Collections.Generic.List`1[QteTrainer.TrainerActions+BuildEntry]
 [Warning:Il2CppInterop] Method Void UnlockByNumber(System.Collections.Generic.List`1[QteTrainer.TrainerActions+BuildEntry]) on type QteTrainer.QteTrainerUi has unsupported parameter System.Collections.Generic.List`1[QteTrainer.TrainerActions+BuildEntry] shown of type System.Collections.Generic.List`1[QteTrainer.TrainerActions+BuildEntry]
 [Info   :Il2CppInterop] Registered mono type QteTrainer.QteTrainerUi in il2cpp domain
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5B1E0830 to 0x7FFF02283BE4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5B1E0830 to 0x7FFF01D83BE4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F0000
 [Debug  :DobbyDetour] Original: 7FFF5B1E0830, Trampoline: 7FFF1B1F0000, diff: 3FFF0830
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5B1E0C10 to 0x7FFF02283C24
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5B1E0C10 to 0x7FFF01D83C24
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F0020
 [Debug  :DobbyDetour] Original: 7FFF5B1E0C10, Trampoline: 7FFF1B1F0020, diff: 3FFF0BF0
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5B038020 to 0x7FFF02283C64
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5B038020 to 0x7FFF01D83C64
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F0040
 [Debug  :DobbyDetour] Original: 7FFF5B038020, Trampoline: 7FFF1B1F0040, diff: 3FE47FE0
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5B1E4450 to 0x7FFF02283CA4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5B1E4450 to 0x7FFF01D83CA4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F0060
 [Debug  :DobbyDetour] Original: 7FFF5B1E4450, Trampoline: 7FFF1B1F0060, diff: 3FFF43F0
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5B03E360 to 0x7FFF02283CE4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5B03E360 to 0x7FFF01D83CE4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F0080
 [Debug  :DobbyDetour] Original: 7FFF5B03E360, Trampoline: 7FFF1B1F0080, diff: 3FE4E2E0
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFFFE10 to 0x7FFF02283D24
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFFFE10 to 0x7FFF01D83D24
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F00A0
 [Debug  :DobbyDetour] Original: 7FFF5AFFFE10, Trampoline: 7FFF1B1F00A0, diff: 3FE0FD70
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFFFF30 to 0x7FFF02283D64
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFFFF30 to 0x7FFF01D83D64
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F00C0
 [Debug  :DobbyDetour] Original: 7FFF5AFFFF30, Trampoline: 7FFF1B1F00C0, diff: 3FE0FE70
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFE4820 to 0x7FFF02283DA4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFE4820 to 0x7FFF01D83DA4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F00E0
 [Debug  :DobbyDetour] Original: 7FFF5AFE4820, Trampoline: 7FFF1B1F00E0, diff: 3FDF4740
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFE6B10 to 0x7FFF02283DE4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFE6B10 to 0x7FFF01D83DE4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F0100
 [Debug  :DobbyDetour] Original: 7FFF5AFE6B10, Trampoline: 7FFF1B1F0100, diff: 3FDF6A10
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5B053800 to 0x7FFF02283E24
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5B053800 to 0x7FFF01D83E24
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F0120
 [Debug  :DobbyDetour] Original: 7FFF5B053800, Trampoline: 7FFF1B1F0120, diff: 3FE636E0
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFCA740 to 0x7FFF02283E64
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFCA740 to 0x7FFF01D83E64
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F0140
 [Debug  :DobbyDetour] Original: 7FFF5AFCA740, Trampoline: 7FFF1B1F0140, diff: 3FDDA600
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFC8D50 to 0x7FFF02283EA4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFC8D50 to 0x7FFF01D83EA4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F0160
 [Debug  :DobbyDetour] Original: 7FFF5AFC8D50, Trampoline: 7FFF1B1F0160, diff: 3FDD8BF0
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AF6EA60 to 0x7FFF02283EE4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AF6EA60 to 0x7FFF01D83EE4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F0180
 [Debug  :DobbyDetour] Original: 7FFF5AF6EA60, Trampoline: 7FFF1B1F0180, diff: 3FD7E8E0
 [Info   :QTE / 万能 Trainer] QTE Trainer loaded.
@@ -330,7 +330,7 @@
 [Debug  :Il2cpp plugin FlowerPicker] Starting service [Win32WindowMessageService]
 [Info   :Il2cpp plugin FlowerPicker] [Win32Pipe] ListenLoop() entered on thread 18
 [Info   :Il2cpp plugin FlowerPicker] [Win32Pipe] Waiting for connection on \\.\pipe\FlowerPickerPipe...
-[Info   :Il2cpp plugin FlowerPicker] [WinMsg] Subclass installed on hwnd=0x80F98
+[Info   :Il2cpp plugin FlowerPicker] [WinMsg] Subclass installed on hwnd=0x100FE8
 [Debug  :Il2cpp plugin FlowerPicker] Starting service [GrpcCommunicationService]
 [Info   :Il2cpp plugin FlowerPicker] Grpc.Core v2.0.0.0 loaded from D:\steam\steamapps\common\RomanticEscapades\RE\BepInEx\plugins\xmod\Grpc.Core.dll
 [Info   :Il2cpp plugin FlowerPicker] Selected free port: 49160
@@ -345,22 +345,22 @@
 [Info   :Il2CppInterop] Registered mono type ModFramework.FrameworkBehaviour in il2cpp domain
 [Info   :Il2CppInterop] Registered mono type ModFramework.Runtime.Il2Cpp.Il2CppManagedEnumerator in il2cpp domain
 [Info   :Il2cpp plugin FlowerPicker] Scene loaded: Start
-[Info   :Il2cpp plugin FlowerPicker] Loaded Unhollowed modules in 0.92800003 seconds.
-[Info   :Il2cpp plugin FlowerPicker] Setup deobfuscation cache in 0.279 seconds.
+[Info   :Il2cpp plugin FlowerPicker] Loaded Unhollowed modules in 0.919 seconds.
+[Info   :Il2cpp plugin FlowerPicker] Setup deobfuscation cache in 0.22000001 seconds.
 [Info   :Il2cpp plugin FlowerPicker] Initialized new InputSystem support.
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5D3FCBE0 to 0x7FFF03AF5864
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5D3FCBE0 to 0x7FFF035E5864
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1D400000
 [Debug  :DobbyDetour] Original: 7FFF5D3FCBE0, Trampoline: 7FFF1D400000, diff: 3FFFCBE0
 [Debug  :Il2cpp plugin FlowerPicker] 	 Successfully patched UnityEngine.EventSystems.EventSystem.current
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5D3FB830 to 0x7FFF03AF58A4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5D3FB830 to 0x7FFF035E58A4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1D400020
 [Debug  :DobbyDetour] Original: 7FFF5D3FB830, Trampoline: 7FFF1D400020, diff: 3FFFB810
 [Debug  :Il2cpp plugin FlowerPicker] 	 Successfully patched UnityEngine.EventSystems.EventSystem.SetSelectedGameObject
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5D16B430 to 0x7FFF03AF58E4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5D16B430 to 0x7FFF035E58E4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1D400040
 [Debug  :DobbyDetour] Original: 7FFF5D16B430, Trampoline: 7FFF1D400040, diff: 3FD6B3F0
 [Debug  :Il2cpp plugin FlowerPicker] 	 Successfully patched UnityEngine.Cursor.lockState
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5D16B470 to 0x7FFF03AF5924
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5D16B470 to 0x7FFF035E5924
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1D400060
 [Debug  :DobbyDetour] Original: 7FFF5D16B470, Trampoline: 7FFF1D400060, diff: 3FD6B410
 [Debug  :Il2cpp plugin FlowerPicker] 	 Successfully patched UnityEngine.Cursor.visible
@@ -370,65 +370,42 @@
 [Debug  :Il2cpp plugin FlowerPicker] Found panel button: Settings in Navigation Panel
 [Warning:Il2cpp plugin FlowerPicker] [ModFramework] Localization path not found: Xmod/Container/Content/Main Content/Settings/Settings List/List/Music Notification/Title
 [Info   :Il2cpp plugin FlowerPicker] ModFramework initialized.
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5D190490 to 0x7FFF03AF5A24
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5D190490 to 0x7FFF035E5A24
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1D400080
 [Debug  :DobbyDetour] Original: 7FFF5D190490, Trampoline: 7FFF1D400080, diff: 3FD90410
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFE6B10 to 0x7FFF03AF5A64
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFE6B10 to 0x7FFF035E5A64
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F01A0
 [Debug  :DobbyDetour] Original: 7FFF5AFE6B10, Trampoline: 7FFF1B1F01A0, diff: 3FDF6970
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFE6C00 to 0x7FFF03AF5AA4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFE6C00 to 0x7FFF035E5AA4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F01C0
 [Debug  :DobbyDetour] Original: 7FFF5AFE6C00, Trampoline: 7FFF1B1F01C0, diff: 3FDF6A40
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFFFE10 to 0x7FFF03AF5AE4
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFFFE10 to 0x7FFF035E5AE4
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F01E0
 [Debug  :DobbyDetour] Original: 7FFF5AFFFE10, Trampoline: 7FFF1B1F01E0, diff: 3FE0FC30
-[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFE4820 to 0x7FFF03AF5B24
+[Debug  :DobbyDetour] Preparing detour from 0x7FFF5AFE4820 to 0x7FFF035E5B24
 [Debug  :DobbyDetour] Prepared detour; Trampoline: 0x7FFF1B1F0200
 [Debug  :DobbyDetour] Original: 7FFF5AFE4820, Trampoline: 7FFF1B1F0200, diff: 3FDF4620
 [Debug  :Il2CppInterop] Original class was inflated, falling back to reflection
 [Info   :QTE / 万能 Trainer] Trainer 总开关: 开启。面板已显示, 按 F9 可隐藏。
+[Info   :QTE / 万能 Trainer] 鼠标: 已解锁并强制显示(每帧按住, 游戏改回去也会被拉回来)。
+[Debug  :Il2CppInterop] Original class was inflated, falling back to reflection
 [Debug  :Il2CppInterop] Original class was inflated, falling back to reflection
 [Info   :QTE / 万能 Trainer] ProtoObey 走了兜底路径(从 Girl.GetProtoObay 取), 拿到 6 条。
 [Info   :QTE / 万能 Trainer] 调教局内次数已修改: 共 6 条配置, 实际改动 6 条 (Limit->999, Reduce->0=True, 消耗清零=True)。 明细: [6] Limit 9999->999, Reduce 20->0, CostTime 15->0, CostRP 0->0, ItemCost 20->0, ObeyMax 100 | [1] Limit 9999->999, Reduce 20->0, CostTime 60->0, CostRP 0->0, ItemCost 1->0, ObeyMax 20 | [2] Limit 9999->999, Reduce 20->0, CostTime 60->0, CostRP 0->0, ItemCost 2->0, ObeyMax 60 | [3] Limit 9999->999, Reduce 20->0, CostTime 60->0, CostRP 0->0, ItemCost 3->0, ObeyMax 100 | [4] Limit 9999->999, Reduce 20->0, CostTime 60->0, CostRP 0->0, ItemCost 5->0, ObeyMax 150 | [5] Limit 9999->999, Reduce 20->0, CostTime 60->0, CostRP 0->0, ItemCost 10->0, ObeyMax 200
-[Info   :QTE / 万能 Trainer] 鼠标: 已解锁并强制显示(每帧按住, 游戏改回去也会被拉回来)。
-[Info   :QTE / 万能 Trainer] 鼠标: 交还给游戏控制。
-[Info   :QTE / 万能 Trainer] 鼠标: 已解锁并强制显示(每帧按住, 游戏改回去也会被拉回来)。
-[Info   :QTE / 万能 Trainer] 调教局内次数已还原 6 条为游戏原值。
-[Info   :QTE / 万能 Trainer] 调教局内次数已修改: 共 6 条配置, 实际改动 6 条 (Limit->999, Reduce->0=True, 消耗清零=True)。 明细: [1] Limit 9999->999, Reduce 20->0, CostTime 60->0, CostRP 0->0, ItemCost 1->0, ObeyMax 20 | [2] Limit 9999->999, Reduce 20->0, CostTime 60->0, CostRP 0->0, ItemCost 2->0, ObeyMax 60 | [3] Limit 9999->999, Reduce 20->0, CostTime 60->0, CostRP 0->0, ItemCost 3->0, ObeyMax 100 | [4] Limit 9999->999, Reduce 20->0, CostTime 60->0, CostRP 0->0, ItemCost 5->0, ObeyMax 150 | [5] Limit 9999->999, Reduce 20->0, CostTime 60->0, CostRP 0->0, ItemCost 10->0, ObeyMax 200 | [6] Limit 9999->999, Reduce 20->0, CostTime 15->0, CostRP 0->0, ItemCost 20->0, ObeyMax 100
+[Info   :QTE / 万能 Trainer] 小游戏自动满进度: 开 (调教界面打开期间进度会被按住)。
+[Info   :QTE / 万能 Trainer] 场景里没有调教小游戏(找不到 TouchPoint)。请先在游戏里打开调教界面再按。
+[Info   :QTE / 万能 Trainer] 场景里没有调教小游戏(找不到 TouchPoint)。请先在游戏里打开调教界面再按。
 [Debug  :Il2CppInterop] Original class was inflated, falling back to reflection
 [Info   :QTE / 万能 Trainer] 调教一键通关: 处理 14 个 NPC, 服从度->200 (表内最大 ObeyMax=200), 调教次数->0。 名单: N_QS, N_DT, N_AY, N_CN, N_WN, N_XW, N_NW, N_QS, N_DT, N_AY, N_CN, N_WN, N_XW, N_NW
-[Info   :QTE / 万能 Trainer] 调教一键通关: 处理 14 个 NPC, 服从度->200 (表内最大 ObeyMax=200), 调教次数->0。 名单: N_QS, N_DT, N_AY, N_CN, N_WN, N_XW, N_NW, N_QS, N_DT, N_AY, N_CN, N_WN, N_XW, N_NW
-[Info   :QTE / 万能 Trainer] 调教状态诊断: ProtoObey 表拿到 6 条。 [N_QS] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_DT] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_AY] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_CN] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_WN] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_XW] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_NW] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; GirlMgr.Girls 共 7 个。
+[Info   :QTE / 万能 Trainer] 当前场景没有调教小游戏, 无状态可打印。
 [Info   :QTE / 万能 Trainer] ProtoObey 表: 共 6 条。 [1] Limit=999 Reduce=0 ObeyMax=20 FlirtIncre=10 FavorIncre=10 CostTime=0 CostRP=0 ItemCost=0; [2] Limit=999 Reduce=0 ObeyMax=60 FlirtIncre=25 FavorIncre=20 CostTime=0 CostRP=0 ItemCost=0; [3] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=40 FavorIncre=40 CostTime=0 CostRP=0 ItemCost=0; [4] Limit=999 Reduce=0 ObeyMax=150 FlirtIncre=70 FavorIncre=75 CostTime=0 CostRP=0 ItemCost=0; [5] Limit=999 Reduce=0 ObeyMax=200 FlirtIncre=150 FavorIncre=150 CostTime=0 CostRP=0 ItemCost=0; [6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 FavorIncre=400 CostTime=0 CostRP=0 ItemCost=0;
+[Info   :QTE / 万能 Trainer] 调教状态诊断: ProtoObey 表拿到 6 条。 [N_QS] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_DT] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_AY] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_CN] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_WN] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_XW] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_NW] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; GirlMgr.Girls 共 7 个。
 [Debug  :Il2CppInterop] Original class was inflated, falling back to reflection
 [Info   :QTE / 万能 Trainer] ProtoMgr.Members 共 120 张表: Game.ProtoText=7606, Game.ProtoGlobal=33, Game.ProtoStableRemap=0, Game.CampProto=5, Game.ProtoToken=6, Game.ProtoHatred=1, Game.ProtoActionPriority=4, Game.ProtoEffectSelector=7, Game.ProtoBullet=0, Game.ProtoEntry=19, Game.ProtoBlocker=8, Game.ProtoRankRemapFloat=1758, Game.ProtoCommand=2843, Game.ProtoCondition=1067, Game.ProtoCharacterMonster=230, Game.ProtoFxBankNode=93, Game.ProtoSFxBankNode=922, Game.ProtoRuntimeTaskKill=1, Game.ProtoEffectNone=1, Game.ProtoEffectDamage=24, Game.ProtoEffectHealth=35, Game.ProtoEffectImmune=10, Game.ProtoEffectUnSelectable=1, Game.ProtoEffectBuffIMM=11, Game.ProtoEffectAttribRuntimeModifier=11, Game.ProtoEffectAttribModifier=10, Game.ProtoEffectStun=1, Game.ProtoEffectBuffRemove=10, Game.SkillPlanMoveLineProto=26, Game.SkillPlanTransToProto=9, Game.ProtoBuffMonitorCastSkill=0, Game.ProtoBuffMonitorRest=10, Game.ProtoBuffMonitorExercise=1, Game.ProtoTouchPose=78, Game.ProtoCompetitionPose=3, Game.ProtoDredgePose=3, Game.ProtoBodyParttern=10, Game.ProtoBodyDec=60, Game.ProtoBodyPubicHair=2, Game.ProtoBuff=66, Game.ProtoSkill=5, Game.ProtoSkillDesc=8, Game.ProtoCreature=80, Game.ProtoMonster=7, Game.ProtoCharactor=4, Game.ProtoInteractor=84, Game.ProtoFieldTaskGoalCastSkill=2, Game.ProtoFieldTask=0, Game.ProtoMapFuncPoint=20, Game.ProtoTask=317, Game.ProtoDailyTask=36, Game.ProtoTaskGoalArea=1, Game.ProtoTaskGoalCollect=3, Game.ProtoTaskGoalGainItem=123, Game.ProtoTaskGoalInteractor=18, Game.ProtoTaskGoalFarm=3, Game.ProtoTaskGoalBuild=25, Game.ProtoTaskGoalDailyCount=1, Game.ProtoTaskGoalRest=4, Game.ProtoTaskGoalMiniGame=6, Game.ProtoTaskGoalPlayablePlayer=8, Game.ProtoTaskGoalAcupuncture=4, Game.ProtoTaskGoalSalesBox=1, Game.ProtoTaskGoalFavRank=7, Game.ProtoTaskGoalNeedle=5, Game.ProtoTaskGoalFlirt=1, Game.ProtoTaskGoalItemUse=2, Game.ProtoTaskGoalCompetition=3, Game.ProtoTaskGoalDredge=3, Game.ProtoTaskGoalGenIttActive=1, Game.ProtoEttGenerator=62, Game.ProtoEquip=16, Game.ProtoItem=362, Game.ProtoCharacter=4, Game.ProtoPlayer=1, Game.ProtoAudioLstTakeDamageConfig=2, Game.ProtoFxTriggerSkillState=376, Game.ProtoSFxTriggerSkillState=422, Game.ProtoAudioLstTakeDamage=37, Game.ProtoConversation=518, Game.ProtoConvNode=1414, Game.ProtoBagUpgrade=100, Game.ProtoItemUse=45, Game.ProtoReward=403, Game.ProtoCollectionPoint=37, Game.ProtoCollectionPointFish=3, Game.ProtoCollectionStuff=24, Game.ProtoCollectionHidden=22, ProtoBuffPoint=4, Game.ProtoProduce=55, Game.ProtoShop=118, Game.ProtoReputationLevel=11, Game.ProtoSeed=25, Game.ProtoTalk=402, Game.ProtoMenu=450, Game.ProtoMapTips=22, Game.ProtoMaterialLack=34, Game.ProtoSalesSettle=7, Game.ProtoSalesReward=3, Game.ProtoSalesBox=5, Game.ProtoMaterialMarket=24, Game.ProtoStoryMemory=92, Game.ProtoStorySelection=7, Game.ProtoBathAttack=7, Game.ProtoBuild=34, Game.ProtoAcupuncture=6, Game.ProtoNeedle=7, Game.ProtoGirl=7, Game.ProtoObey=6, Game.ProtoMapAuxDropItem=9, Game.ProtoGift=12, Game.ProtoInteractionDesc=293, Game.ProtoExerciseInfo=14, Game.ProtoBuildUpgrade=12, Game.ProtoLevelUp=6, Game.ProtoFavorabilityTask=72, Game.ProtoVerse=67, Game.ProtoWakeup=0, Game.ProtoMorningAtk=7, Game.ProtoCheatItem=41
-[Info   :QTE / 万能 Trainer] ProtoObey 表: 共 6 条。 [1] Limit=999 Reduce=0 ObeyMax=20 FlirtIncre=10 FavorIncre=10 CostTime=0 CostRP=0 ItemCost=0; [2] Limit=999 Reduce=0 ObeyMax=60 FlirtIncre=25 FavorIncre=20 CostTime=0 CostRP=0 ItemCost=0; [3] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=40 FavorIncre=40 CostTime=0 CostRP=0 ItemCost=0; [4] Limit=999 Reduce=0 ObeyMax=150 FlirtIncre=70 FavorIncre=75 CostTime=0 CostRP=0 ItemCost=0; [5] Limit=999 Reduce=0 ObeyMax=200 FlirtIncre=150 FavorIncre=150 CostTime=0 CostRP=0 ItemCost=0; [6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 FavorIncre=400 CostTime=0 CostRP=0 ItemCost=0;
+[Info   :QTE / 万能 Trainer] 场景里没有调教小游戏(找不到 TouchPoint)。请先在游戏里打开调教界面再按。
+[Info   :QTE / 万能 Trainer] 场景里没有调教小游戏(找不到 TouchPoint)。请先在游戏里打开调教界面再按。
+[Info   :QTE / 万能 Trainer] 场景里没有调教小游戏(找不到 TouchPoint)。请先在游戏里打开调教界面再按。
+[Info   :QTE / 万能 Trainer] 当前场景没有调教小游戏, 无状态可打印。
 [Info   :QTE / 万能 Trainer] 调教状态诊断: ProtoObey 表拿到 6 条。 [N_QS] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_DT] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_AY] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_CN] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_WN] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_XW] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; [N_NW] Obey=200 FlirtCount=0 Star=5 | CurtProtoObay[6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 CostTime=0 CostRP=0 ItemCost=0 推算剩余=999; GirlMgr.Girls 共 7 个。
-[Info   :QTE / 万能 Trainer] Trainer 总开关: 关闭。所有功能已停用, 游戏回到未修改状态。
-[Info   :QTE / 万能 Trainer] Trainer 总开关: 开启。面板已显示, 按 F9 可隐藏。
-[Info   :QTE / 万能 Trainer] Trainer 总开关: 关闭。所有功能已停用, 游戏回到未修改状态。
-[Info   :QTE / 万能 Trainer] Trainer 总开关: 开启。面板已显示, 按 F9 可隐藏。
-[Info   :QTE / 万能 Trainer] 金币 105999 -> 9999999。
-[Info   :QTE / 万能 Trainer] 经验 0 -> 9999999。
-[Info   :QTE / 万能 Trainer] Trainer 总开关: 关闭。所有功能已停用, 游戏回到未修改状态。
-[Info   :QTE / 万能 Trainer] Trainer 总开关: 开启。面板已显示, 按 F9 可隐藏。
-[Info   :QTE / 万能 Trainer] 金币 999999 -> 9999999。
-[Info   :QTE / 万能 Trainer] 经验 9999999 -> 9999999。
-[Debug  :Il2CppInterop] Original class was inflated, falling back to reflection
-[Info   :QTE / 万能 Trainer] ProtoBodyDec: 共 60 项, 原本已解锁 60, 本次翻成已解锁 0, 仍然锁定 0。
-[Debug  :Il2CppInterop] Original class was inflated, falling back to reflection
-[Info   :QTE / 万能 Trainer] ProtoBodyParttern: 共 10 项, 原本已解锁 10, 本次翻成已解锁 0, 仍然锁定 0。
-[Debug  :Il2CppInterop] Original class was inflated, falling back to reflection
-[Info   :QTE / 万能 Trainer] ProtoBodyPubicHair: 共 2 项, 原本已解锁 2, 本次翻成已解锁 0, 仍然锁定 0。
-[Info   :QTE / 万能 Trainer] 解锁身体外观完成: 现在已解锁 72 项。
-[Debug  :Il2CppInterop] Original class was inflated, falling back to reflection
-[Info   :QTE / 万能 Trainer] 任务一键完成: 处理 0 个任务 / 0 个目标, 其中 0 个活动任务走了 Succ()。
-[Info   :QTE / 万能 Trainer] 任务一键完成: 处理 0 个任务 / 0 个目标, 其中 0 个活动任务走了 Succ()。
-[Info   :QTE / 万能 Trainer] 任务一键完成: 处理 0 个任务 / 0 个目标, 其中 0 个活动任务走了 Succ()。
-[Info   :QTE / 万能 Trainer] 任务一键完成: 处理 0 个任务 / 0 个目标, 其中 0 个活动任务走了 Succ()。
-[Info   :QTE / 万能 Trainer] 任务一键完成: 处理 0 个任务 / 0 个目标, 其中 0 个活动任务走了 Succ()。
-[Info   :QTE / 万能 Trainer] 任务一键完成: 处理 0 个任务 / 0 个目标, 其中 0 个活动任务走了 Succ()。
-[Info   :QTE / 万能 Trainer] 任务一键完成: 处理 0 个任务 / 0 个目标, 其中 0 个活动任务走了 Succ()。
-[Info   :QTE / 万能 Trainer] 任务一键完成: 处理 0 个任务 / 0 个目标, 其中 0 个活动任务走了 Succ()。
-[Info   :QTE / 万能 Trainer] 任务一键完成: 处理 0 个任务 / 0 个目标, 其中 0 个活动任务走了 Succ()。
-[Info   :QTE / 万能 Trainer] 任务一键完成: 处理 0 个任务 / 0 个目标, 其中 0 个活动任务走了 Succ()。
+[Info   :QTE / 万能 Trainer] ProtoObey 表: 共 6 条。 [1] Limit=999 Reduce=0 ObeyMax=20 FlirtIncre=10 FavorIncre=10 CostTime=0 CostRP=0 ItemCost=0; [2] Limit=999 Reduce=0 ObeyMax=60 FlirtIncre=25 FavorIncre=20 CostTime=0 CostRP=0 ItemCost=0; [3] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=40 FavorIncre=40 CostTime=0 CostRP=0 ItemCost=0; [4] Limit=999 Reduce=0 ObeyMax=150 FlirtIncre=70 FavorIncre=75 CostTime=0 CostRP=0 ItemCost=0; [5] Limit=999 Reduce=0 ObeyMax=200 FlirtIncre=150 FavorIncre=150 CostTime=0 CostRP=0 ItemCost=0; [6] Limit=999 Reduce=0 ObeyMax=100 FlirtIncre=25 FavorIncre=400 CostTime=0 CostRP=0 ItemCost=0;
+[Info   :QTE / 万能 Trainer] ProtoMgr.Members 共 120 张表: Game.ProtoText=7606, Game.ProtoGlobal=33, Game.ProtoStableRemap=0, Game.CampProto=5, Game.ProtoToken=6, Game.ProtoHatred=1, Game.ProtoActionPriority=4, Game.ProtoEffectSelector=7, Game.ProtoBullet=0, Game.ProtoEntry=19, Game.ProtoBlocker=8, Game.ProtoRankRemapFloat=1758, Game.ProtoCommand=2843, Game.ProtoCondition=1067, Game.ProtoCharacterMonster=230, Game.ProtoFxBankNode=93, Game.ProtoSFxBankNode=922, Game.ProtoRuntimeTaskKill=1, Game.ProtoEffectNone=1, Game.ProtoEffectDamage=24, Game.ProtoEffectHealth=35, Game.ProtoEffectImmune=10, Game.ProtoEffectUnSelectable=1, Game.ProtoEffectBuffIMM=11, Game.ProtoEffectAttribRuntimeModifier=11, Game.ProtoEffectAttribModifier=10, Game.ProtoEffectStun=1, Game.ProtoEffectBuffRemove=10, Game.SkillPlanMoveLineProto=26, Game.SkillPlanTransToProto=9, Game.ProtoBuffMonitorCastSkill=0, Game.ProtoBuffMonitorRest=10, Game.ProtoBuffMonitorExercise=1, Game.ProtoTouchPose=78, Game.ProtoCompetitionPose=3, Game.ProtoDredgePose=3, Game.ProtoBodyParttern=10, Game.ProtoBodyDec=60, Game.ProtoBodyPubicHair=2, Game.ProtoBuff=66, Game.ProtoSkill=5, Game.ProtoSkillDesc=8, Game.ProtoCreature=80, Game.ProtoMonster=7, Game.ProtoCharactor=4, Game.ProtoInteractor=84, Game.ProtoFieldTaskGoalCastSkill=2, Game.ProtoFieldTask=0, Game.ProtoMapFuncPoint=20, Game.ProtoTask=317, Game.ProtoDailyTask=36, Game.ProtoTaskGoalArea=1, Game.ProtoTaskGoalCollect=3, Game.ProtoTaskGoalGainItem=123, Game.ProtoTaskGoalInteractor=18, Game.ProtoTaskGoalFarm=3, Game.ProtoTaskGoalBuild=25, Game.ProtoTaskGoalDailyCount=1, Game.ProtoTaskGoalRest=4, Game.ProtoTaskGoalMiniGame=6, Game.ProtoTaskGoalPlayablePlayer=8, Game.ProtoTaskGoalAcupuncture=4, Game.ProtoTaskGoalSalesBox=1, Game.ProtoTaskGoalFavRank=7, Game.ProtoTaskGoalNeedle=5, Game.ProtoTaskGoalFlirt=1, Game.ProtoTaskGoalItemUse=2, Game.ProtoTaskGoalCompetition=3, Game.ProtoTaskGoalDredge=3, Game.ProtoTaskGoalGenIttActive=1, Game.ProtoEttGenerator=62, Game.ProtoEquip=16, Game.ProtoItem=362, Game.ProtoCharacter=4, Game.ProtoPlayer=1, Game.ProtoAudioLstTakeDamageConfig=2, Game.ProtoFxTriggerSkillState=376, Game.ProtoSFxTriggerSkillState=422, Game.ProtoAudioLstTakeDamage=37, Game.ProtoConversation=518, Game.ProtoConvNode=1414, Game.ProtoBagUpgrade=100, Game.ProtoItemUse=45, Game.ProtoReward=403, Game.ProtoCollectionPoint=37, Game.ProtoCollectionPointFish=3, Game.ProtoCollectionStuff=24, Game.ProtoCollectionHidden=22, ProtoBuffPoint=4, Game.ProtoProduce=55, Game.ProtoShop=118, Game.ProtoReputationLevel=11, Game.ProtoSeed=25, Game.ProtoTalk=402, Game.ProtoMenu=450, Game.ProtoMapTips=22, Game.ProtoMaterialLack=34, Game.ProtoSalesSettle=7, Game.ProtoSalesReward=3, Game.ProtoSalesBox=5, Game.ProtoMaterialMarket=24, Game.ProtoStoryMemory=92, Game.ProtoStorySelection=7, Game.ProtoBathAttack=7, Game.ProtoBuild=34, Game.ProtoAcupuncture=6, Game.ProtoNeedle=7, Game.ProtoGirl=7, Game.ProtoObey=6, Game.ProtoMapAuxDropItem=9, Game.ProtoGift=12, Game.ProtoInteractionDesc=293, Game.ProtoExerciseInfo=14, Game.ProtoBuildUpgrade=12, Game.ProtoLevelUp=6, Game.ProtoFavorabilityTask=72, Game.ProtoVerse=67, Game.ProtoWakeup=0, Game.ProtoMorningAtk=7, Game.ProtoCheatItem=41
