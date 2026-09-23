@@ -49,6 +49,13 @@ namespace QteTrainer
         public static ConfigEntry<string> TeleportPresetDock;
         public static ConfigEntry<string> TeleportPresetSwamp;
         public static ConfigEntry<string> TeleportPresetAltar;
+        // ---- 调教 (Game.ProtoObey / Game.Girl / Game.InfoGirl) ----
+        public static ConfigEntry<string> TrainClearKey;
+        public static ConfigEntry<string> TrainLimitKey;
+        public static ConfigEntry<int> ObeyLimit;
+        public static ConfigEntry<bool> ObeyNoReduce;
+        public static ConfigEntry<int> ObeyTarget;
+        public static ConfigEntry<int> FlirtCountTarget;
 
         /// <summary>
         /// 总开关。只有它为 true 时, 任何 Harmony 补丁效果与面板绘制才会真正生效。
@@ -103,6 +110,14 @@ namespace QteTrainer
             TeleportPresetDock = Config.Bind("Teleport", "PresetDock", "", "码头预设传送 Key(留空则按钮提示未设置)");
             TeleportPresetSwamp = Config.Bind("Teleport", "PresetSwamp", "", "黑沼泽预设传送 Key(留空则按钮提示未设置)");
             TeleportPresetAltar = Config.Bind("Teleport", "PresetAltar", "", "祭坛/祭神台预设传送 Key(留空则按钮提示未设置)");
+
+            // 调教: 局内次数来自 Game.ProtoObey.Limit(默认 10), 每次消耗 ProtoObey.Reduce。
+            TrainClearKey   = Config.Bind("Master", "TrainClearKey", "F1", "调教一键通关(服从度拉满)热键");
+            TrainLimitKey   = Config.Bind("Master", "TrainLimitKey", "F2", "调教次数不下降 开/关 热键");
+            ObeyLimit       = Config.Bind("Train", "Limit", 999, "调教局内次数上限(原表通常是 10)。0=不改上限, 只把 Reduce 设 0");
+            ObeyNoReduce    = Config.Bind("Train", "NoReduce", true, "true=把所有 ProtoObey.Reduce 设为 0, 局内次数不再下降(直到一局通关)");
+            ObeyTarget      = Config.Bind("Train", "ObeyTarget", 0, "一键通关时写入的服从度。0=用表里最大的 ObeyMax");
+            FlirtCountTarget= Config.Bind("Train", "FlirtCount", 999, "一键通关时写入的调教次数(FlirtCount)");
 
             // 关键: 每次启动都把总开关重置为关闭。
             // 上一次会话保存下来的 Enabled=true / ShowPanel=true 不会带进这次启动,
@@ -847,6 +862,335 @@ namespace QteTrainer
         }
 
         /* --------------------------------------------------------------------
+         * 调教 (Game.ProtoObey / Game.Girl / Game.InfoGirl)
+         *
+         * 下面这些签名(含参数类型)全部是从 BepInEx/interop/Assembly-CSharp.dll 的
+         * 元数据里 dump 出来的, 不是猜的:
+         *
+         *   Game.ProtoObey : Game.ProtoBase
+         *       int   ObeyMax      服从度上限
+         *       int   FlirtIncre   每次调教增加的服从度
+         *       int   FavorIncre   每次调教增加的好感
+         *       float CostTime     耗时
+         *       float CostRP       体力消耗
+         *       int   Limit        局内次数上限   <-- 默认就是那个 10
+         *       int   Reduce       每次下降量     <-- 设成 0 就不会下降
+         *       int   ItemCost     道具消耗
+         *   Game.InfoGirl
+         *       int Obey        {get;set;}   服从度
+         *       int FlirtCount  {get;set;}   调教次数
+         *       int Favorability / FavorabilityStar {get;set;}
+         *   Game.Girl
+         *       InfoGirl  Info        {get;set;}
+         *       ProtoObey CurtProtoObay {get;}      当前这条调教配置
+         *       ProtoObey GetProtoObay(int)
+         *       void AddObey(int) / ClearObey() / AddFlirt(int) / ClearFlirt()
+         *   Game.GirlMgr : Game.Singleton`1<GirlMgr>
+         *       List<Girl> Girls {get;}
+         *       Dictionary<string,Girl> DicGirls {get;}
+         *       Girl GetGirl(string)
+         *       void AddObey(string,int) / ClearObey(string)
+         *
+         * 关键点: ProtoObey 是 ProtoMgr 里的静态配置表, 而 Girl.CurtProtoObay 返回的就是
+         * 表里同一个实例 —— 所以直接改表, 正在进行中的那一局也会立刻生效。
+         * -------------------------------------------------------------------- */
+
+        /// <summary>取 ProtoMgr 里某张表的 KeyMap(走 xmod 验证过的 Type.GetType 路线)。</summary>
+        private static object GetProtoKeyMap(string fullTypeName)
+        {
+            ProtoMgr mgr;
+            try { mgr = ProtoMgr.Instance; }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"ProtoMgr.Instance 读取失败: {ex.GetType().Name}: {ex.Message}");
+                return null;
+            }
+            if (mgr == null) return null;
+
+            object members = ReflectGet(mgr, "Members");
+            if (members == null) return null;
+
+            var t = Il2CppSystem.Type.GetType(fullTypeName);
+            if (t == null)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"Il2CppSystem.Type.GetType(\"{fullTypeName}\") 返回 null。");
+                return null;
+            }
+
+            var itemProp = members.GetType().GetProperty("Item");
+            if (itemProp == null) return null;
+
+            object member = null;
+            try { member = itemProp.GetValue(members, new object[] { t }); }
+            catch { }
+            if (member == null) return null;
+            return ReflectGet(member, "KeyMap");
+        }
+
+        private static List<ProtoObey> GetAllProtoObey()
+        {
+            var list = new List<ProtoObey>();
+            object keyMap = GetProtoKeyMap("Game.ProtoObey");
+            if (keyMap == null)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning(
+                    "ProtoMgr 里没找到 Game.ProtoObey 表(还没进入正常游戏场景?)。");
+                return list;
+            }
+            foreach (var pair in EnumerateAny(keyMap))
+            {
+                object v = PairPart(pair, "Value");
+                var proto = v as ProtoObey;
+                if (proto == null) proto = pair as ProtoObey;
+                if (proto != null && !list.Contains(proto)) list.Add(proto);
+            }
+            return list;
+        }
+
+        /// <summary>当前是否处于「调教次数不下降」状态。</summary>
+        public static bool ObeyUnlimited { get; private set; }
+
+        private sealed class ObeyBackup
+        {
+            public ProtoObey Proto;
+            public int Limit;
+            public int Reduce;
+        }
+
+        private static readonly List<ObeyBackup> _obeyBackup = new List<ObeyBackup>();
+
+        /// <summary>
+        /// 修改调教局内次数: Reduce 设 0(次数不再下降) + Limit 拉到 cfg 里的值。
+        /// 返回改动的条目数。原值会备份, 可以再还原。
+        /// </summary>
+        public static int PatchObeyLimit()
+        {
+            var protos = GetAllProtoObey();
+            if (protos.Count == 0) return 0;
+
+            int newLimit = QteTrainerPlugin.ObeyLimit.Value;
+            bool noReduce = QteTrainerPlugin.ObeyNoReduce.Value;
+            int changed = 0;
+            var detail = new List<string>();
+
+            foreach (var p in protos)
+            {
+                try
+                {
+                    int oldLimit = p.Limit;
+                    int oldReduce = p.Reduce;
+                    bool backed = false;
+                    foreach (var b in _obeyBackup)
+                        if (ReferenceEquals(b.Proto, p)) { backed = true; break; }
+                    if (!backed)
+                        _obeyBackup.Add(new ObeyBackup { Proto = p, Limit = oldLimit, Reduce = oldReduce });
+
+                    bool dirty = false;
+                    if (noReduce && oldReduce != 0) { p.Reduce = 0; dirty = true; }
+                    if (newLimit > 0 && oldLimit != newLimit) { p.Limit = newLimit; dirty = true; }
+                    if (dirty) changed++;
+
+                    if (detail.Count < 8)
+                        detail.Add($"[{p.Key}] Limit {oldLimit}->{p.Limit}, Reduce {oldReduce}->{p.Reduce}, ObeyMax {p.ObeyMax}");
+                }
+                catch (Exception ex)
+                {
+                    QteTrainerPlugin.LogSource?.LogWarning($"修改 ProtoObey 失败: {ex.GetType().Name}: {ex.Message}");
+                }
+            }
+
+            ObeyUnlimited = true;
+            QteTrainerPlugin.LogSource?.LogInfo(
+                $"调教局内次数已修改: 共 {protos.Count} 条配置, 实际改动 {changed} 条 " +
+                $"(Limit->{(newLimit > 0 ? newLimit.ToString() : "不改")}, Reduce->0={noReduce})。" +
+                (detail.Count > 0 ? " 明细: " + string.Join(" | ", detail.ToArray()) : ""));
+            return changed;
+        }
+
+        /// <summary>把调教局内次数还原成游戏原值。</summary>
+        public static int RestoreObeyLimit()
+        {
+            int restored = 0;
+            foreach (var b in _obeyBackup)
+            {
+                try { b.Proto.Limit = b.Limit; b.Proto.Reduce = b.Reduce; restored++; }
+                catch (Exception ex)
+                {
+                    QteTrainerPlugin.LogSource?.LogWarning($"还原 ProtoObey 失败: {ex.GetType().Name}: {ex.Message}");
+                }
+            }
+            _obeyBackup.Clear();
+            ObeyUnlimited = false;
+            QteTrainerPlugin.LogSource?.LogInfo($"调教局内次数已还原 {restored} 条为游戏原值。");
+            return restored;
+        }
+
+        public static void ToggleObeyUnlimited()
+        {
+            if (!QteTrainerPlugin.On)
+            {
+                QteTrainerPlugin.LogSource?.LogInfo(
+                    $"总开关是关的, 先按 {QteTrainerPlugin.ToggleKey.Value} 打开。");
+                return;
+            }
+            if (ObeyUnlimited) RestoreObeyLimit();
+            else PatchObeyLimit();
+        }
+
+        /// <summary>
+        /// 调教一键通关: 把每个 NPC 的服从度(Obey)直接写到上限, 调教次数(FlirtCount)拉高。
+        /// 返回处理的 NPC 数。
+        /// </summary>
+        public static int MaxAllObey()
+        {
+            var protos = GetAllProtoObey();
+            int tableMax = 0;
+            foreach (var p in protos)
+            {
+                try { if (p.ObeyMax > tableMax) tableMax = p.ObeyMax; } catch { }
+            }
+
+            int obey = QteTrainerPlugin.ObeyTarget.Value;
+            if (obey <= 0) obey = tableMax > 0 ? tableMax : 999;
+            int flirt = QteTrainerPlugin.FlirtCountTarget.Value;
+
+            GirlMgr mgr = null;
+            try { mgr = GirlMgr.Instance; }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"GirlMgr.Instance 读取失败: {ex.GetType().Name}: {ex.Message}");
+            }
+
+            int done = 0;
+            var names = new List<string>();
+
+            // 1) 存档里已经创建的 Girl —— 直接改对象, 最准。
+            if (mgr != null)
+            {
+                try
+                {
+                    foreach (var o in EnumerateAny(ReflectGet(mgr, "Girls")))
+                    {
+                        var g = o as Game.Girl;
+                        if (g == null) continue;
+                        string key = null;
+                        try { key = g.Proto?.Key; } catch { }
+                        if (SetObeyOnce(mgr, g, obey, flirt))
+                        {
+                            done++;
+                            names.Add(string.IsNullOrWhiteSpace(key) ? "?" : key);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    QteTrainerPlugin.LogSource?.LogWarning($"遍历 GirlMgr.Girls 失败: {ex.GetType().Name}: {ex.Message}");
+                }
+            }
+
+            // 2) 用静态表补齐还没创建的 NPC。GirlMgr 对 Obey 只给了按 key 的接口。
+            try
+            {
+                foreach (var o in EnumerateAny(ProtoGirl.GetProtoAll()))
+                {
+                    var proto = o as ProtoGirl;
+                    if (proto == null) continue;
+                    string key = null;
+                    try { key = proto.Key; } catch { }
+                    if (string.IsNullOrWhiteSpace(key)) continue;
+
+                    Game.Girl g = null;
+                    if (mgr != null) { try { g = mgr.GetGirl(key); } catch { } }
+                    if (g != null)
+                    {
+                        if (SetObeyOnce(mgr, g, obey, flirt)) { done++; names.Add(key); }
+                        continue;
+                    }
+
+                    // 没有 Girl 对象时, 退一步用按 key 的接口至少把服从度写上。
+                    if (mgr != null)
+                    {
+                        bool ok = false;
+                        try { mgr.ClearObey(key); mgr.AddObey(key, obey); ok = true; }
+                        catch (Exception ex)
+                        {
+                            QteTrainerPlugin.LogSource?.LogWarning($"GirlMgr.AddObey({key}) 失败: {ex.Message}");
+                        }
+                        if (ok) { done++; names.Add(key + "(仅服从度)"); }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"ProtoGirl.GetProtoAll 失败: {ex.GetType().Name}: {ex.Message}");
+            }
+
+            QteTrainerPlugin.LogSource?.LogInfo(
+                $"调教一键通关: 处理 {done} 个 NPC, 服从度->{obey} (表内最大 ObeyMax={tableMax}), 调教次数->{flirt}。" +
+                (names.Count > 0 ? " 名单: " + string.Join(", ", names.ToArray()) : ""));
+            return done;
+        }
+
+        private static bool SetObeyOnce(GirlMgr mgr, Game.Girl girl, int obey, int flirt)
+        {
+            if (girl == null) return false;
+            bool ok = false;
+            try
+            {
+                var info = girl.Info;
+                if (info != null)
+                {
+                    info.Obey = obey;
+                    if (flirt >= 0) info.FlirtCount = flirt;
+                    ok = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                QteTrainerPlugin.LogSource?.LogWarning($"写 InfoGirl.Obey/FlirtCount 失败: {ex.GetType().Name}: {ex.Message}");
+            }
+            if (!ok && mgr != null)
+            {
+                string key = null;
+                try { key = girl.Proto?.Key; } catch { }
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    try { mgr.ClearObey(key); mgr.AddObey(key, obey); ok = true; }
+                    catch (Exception ex)
+                    {
+                        QteTrainerPlugin.LogSource?.LogWarning($"GirlMgr.AddObey({key}) 失败: {ex.Message}");
+                    }
+                }
+            }
+            return ok;
+        }
+
+        /// <summary>把 ProtoObey 表整张打到日志, 排查用。</summary>
+        public static void DumpProtoObey()
+        {
+            var protos = GetAllProtoObey();
+            if (protos.Count == 0) return;
+            var sb = new StringBuilder();
+            sb.Append($"ProtoObey 表: 共 {protos.Count} 条。");
+            int i = 0;
+            foreach (var p in protos)
+            {
+                if (i++ >= 30) { sb.Append(" ...(已截断)"); break; }
+                try
+                {
+                    sb.Append($" [{p.Key}] Limit={p.Limit} Reduce={p.Reduce} ObeyMax={p.ObeyMax} " +
+                              $"FlirtIncre={p.FlirtIncre} FavorIncre={p.FavorIncre} " +
+                              $"CostTime={p.CostTime} CostRP={p.CostRP} ItemCost={p.ItemCost};");
+                }
+                catch (Exception ex)
+                {
+                    sb.Append($" [读取失败 {ex.GetType().Name}];");
+                }
+            }
+            QteTrainerPlugin.LogSource?.LogInfo(sb.ToString());
+        }
+
+        /* --------------------------------------------------------------------
          * 办事地点 (Game.BuildPointMgr / BuildPoint / InfoBuild / ProtoBuild)
          *
          * 已确认的类型关系:
@@ -1284,6 +1628,15 @@ namespace QteTrainer
             QteTrainerPlugin.InfiniteEnergy.Value = enabled;
             QteTrainerPlugin.InfiniteInventory.Value = enabled;
             QteTrainerPlugin.OneHitBreak.Value = enabled;
+
+            // 关总开关时, 把直接改到游戏数据上的东西也一并还原:
+            // 调教次数(改的是 ProtoObey 静态表)和强制显示的鼠标。
+            // 开的时候不自动打补丁 —— 那两项都是要主动按的。
+            if (!enabled)
+            {
+                if (ObeyUnlimited) RestoreObeyLimit();
+                if (CursorForced) SetCursorForced(false);
+            }
         }
 
         /// <summary>
@@ -1399,7 +1752,9 @@ namespace QteTrainer
                 QteTrainerPlugin.LogSource?.LogInfo(
                     $"热键后端: Input System (UnityEngine.InputSystem.Keyboard)。" +
                     $"总开关 = {QteTrainerPlugin.ToggleKey.Value}, 面板 = {QteTrainerPlugin.PanelKey.Value}, " +
-                    $"添加全部物品 = {QteTrainerPlugin.AddItemsKey.Value}");
+                    $"添加全部物品 = {QteTrainerPlugin.AddItemsKey.Value}, 鼠标 = {QteTrainerPlugin.CursorKey.Value}, " +
+                    $"解锁地点 = {QteTrainerPlugin.UnlockBuildKey.Value}, 上/下一个地点 = {QteTrainerPlugin.TpPrevBuildKey.Value}/{QteTrainerPlugin.TpNextBuildKey.Value}, " +
+                    $"调教一键通关 = {QteTrainerPlugin.TrainClearKey.Value}, 调教次数不下降 = {QteTrainerPlugin.TrainLimitKey.Value}");
             }
 
             if (Pressed(kb, ToggleBinding, QteTrainerPlugin.ToggleKey.Value))
@@ -1457,6 +1812,19 @@ namespace QteTrainer
                 return true;
             }
 
+            // 调教一键通关 / 调教次数不下降。
+            if (QteTrainerPlugin.On && Pressed(kb, TrainClearBinding, QteTrainerPlugin.TrainClearKey.Value))
+            {
+                TrainerActions.MaxAllObey();
+                return true;
+            }
+
+            if (QteTrainerPlugin.On && Pressed(kb, TrainLimitBinding, QteTrainerPlugin.TrainLimitKey.Value))
+            {
+                TrainerActions.ToggleObeyUnlimited();
+                return true;
+            }
+
             return true;
         }
 
@@ -1467,6 +1835,8 @@ namespace QteTrainer
         private static readonly KeyBinding UnlockBuildBinding = new KeyBinding();
         private static readonly KeyBinding TpNextBuildBinding = new KeyBinding();
         private static readonly KeyBinding TpPrevBuildBinding = new KeyBinding();
+        private static readonly KeyBinding TrainClearBinding = new KeyBinding();
+        private static readonly KeyBinding TrainLimitBinding = new KeyBinding();
 
         private static bool Pressed(UnityEngine.InputSystem.Keyboard kb, KeyBinding binding, string keyName)
         {
@@ -1571,6 +1941,46 @@ namespace QteTrainer
                         QteTrainerPlugin.LogSource?.LogWarning(
                             $"总开关是关闭的, 请先按 {QteTrainerPlugin.ToggleKey.Value} 开启, 再按 {QteTrainerPlugin.AddItemsKey.Value} 添加物品。");
                     }
+                    return;
+                }
+                // 下面这几个和 Input System 那条路一一对应, 保持两条轮询路径行为一致。
+                if (Enum.TryParse((QteTrainerPlugin.CursorKey.Value ?? string.Empty).Trim(), true, out KeyCode cur)
+                    && UnityEngine.Input.GetKeyDown(cur))
+                {
+                    TrainerActions.ToggleCursorForced();
+                    return;
+                }
+                if (!QteTrainerPlugin.On) return;
+                if (Enum.TryParse((QteTrainerPlugin.UnlockBuildKey.Value ?? string.Empty).Trim(), true, out KeyCode ub)
+                    && UnityEngine.Input.GetKeyDown(ub))
+                {
+                    TrainerActions.UnlockAllBuildPoints();
+                    TrainerActions.InvalidateBuildCache();
+                    return;
+                }
+                if (Enum.TryParse((QteTrainerPlugin.TpNextBuildKey.Value ?? string.Empty).Trim(), true, out KeyCode tnb)
+                    && UnityEngine.Input.GetKeyDown(tnb))
+                {
+                    TrainerActions.CycleBuildTeleport(1, QteTrainerPlugin.TpNextBuildKey.Value);
+                    return;
+                }
+                if (Enum.TryParse((QteTrainerPlugin.TpPrevBuildKey.Value ?? string.Empty).Trim(), true, out KeyCode tpb)
+                    && UnityEngine.Input.GetKeyDown(tpb))
+                {
+                    TrainerActions.CycleBuildTeleport(-1, QteTrainerPlugin.TpPrevBuildKey.Value);
+                    return;
+                }
+                if (Enum.TryParse((QteTrainerPlugin.TrainClearKey.Value ?? string.Empty).Trim(), true, out KeyCode tc)
+                    && UnityEngine.Input.GetKeyDown(tc))
+                {
+                    TrainerActions.MaxAllObey();
+                    return;
+                }
+                if (Enum.TryParse((QteTrainerPlugin.TrainLimitKey.Value ?? string.Empty).Trim(), true, out KeyCode tl)
+                    && UnityEngine.Input.GetKeyDown(tl))
+                {
+                    TrainerActions.ToggleObeyUnlimited();
+                    return;
                 }
             }
             catch (Exception ex)
@@ -1733,16 +2143,18 @@ namespace QteTrainer
                 TrainerActions.ToggleCursorForced();
             GUILayout.EndHorizontal();
 
-            // 分页标签: 内容分成三页, 单页高度就不会超出屏幕。
+            // 分页标签: 内容分成四页, 单页高度就不会超出屏幕。
             GUILayout.BeginHorizontal();
             PageTab(0, "功能");
             PageTab(1, "传送");
             PageTab(2, "办事地点");
+            PageTab(3, "调教");
             GUILayout.EndHorizontal();
 
             if (panelPage == 0) DrawPageCheats();
             else if (panelPage == 1) DrawPageTeleport();
-            else DrawPageBuild();
+            else if (panelPage == 2) DrawPageBuild();
+            else DrawPageTrain();
 
             GUILayout.EndArea();
         }
@@ -1963,6 +2375,40 @@ namespace QteTrainer
                 }
                 GUILayout.EndHorizontal();
             }
+        }
+
+        /* --------------------------------------------------------------------
+         * 调教页
+         *
+         * 局内次数来自 Game.ProtoObey.Limit(游戏默认 10), 每次消耗 ProtoObey.Reduce。
+         * 把 Reduce 设成 0 次数就不会下降, Limit 再拉高做双保险。
+         *
+         * 注意: 这一页不放可编辑输入框 —— 这个游戏的 TextEditor.set_position 被裁剪了,
+         * GUILayout.TextField 一碰就黑屏(v1.2.0 的教训)。数值请在 cfg 里改。
+         * -------------------------------------------------------------------- */
+        private void DrawPageTrain()
+        {
+            GUILayout.Label(
+                $"无鼠标操作: {QteTrainerPlugin.TrainClearKey.Value}=调教一键通关, " +
+                $"{QteTrainerPlugin.TrainLimitKey.Value}=次数不下降 开/关",
+                GUI.skin.box);
+
+            if (GUILayout.Button("调教一键通关 (服从度拉满 + 调教次数拉高)"))
+                TrainerActions.MaxAllObey();
+
+            if (GUILayout.Button(TrainerActions.ObeyUnlimited
+                    ? "调教次数: 已改为不下降 (点击还原成游戏原值)"
+                    : "调教次数: 游戏原值 (点击改为不下降)"))
+                TrainerActions.ToggleObeyUnlimited();
+
+            if (GUILayout.Button("把当前调教配置表打到日志 (排查用)"))
+                TrainerActions.DumpProtoObey();
+
+            GUILayout.Label("当前生效的参数 (在 cfg 文件里改, 改完重进游戏):", GUI.skin.box);
+            GUILayout.Label($"  Train/Limit = {QteTrainerPlugin.ObeyLimit.Value}   局内次数上限 (0=不改上限, 只把 Reduce 设 0)");
+            GUILayout.Label($"  Train/NoReduce = {QteTrainerPlugin.ObeyNoReduce.Value}   true=次数不再下降");
+            GUILayout.Label($"  Train/ObeyTarget = {QteTrainerPlugin.ObeyTarget.Value}   一键通关写入的服从度 (0=用表里最大的 ObeyMax)");
+            GUILayout.Label($"  Train/FlirtCount = {QteTrainerPlugin.FlirtCountTarget.Value}   一键通关写入的调教次数");
         }
 
         private void GotoByNumber(List<TrainerActions.BuildEntry> shown)
