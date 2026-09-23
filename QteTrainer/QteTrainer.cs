@@ -1304,8 +1304,13 @@ namespace QteTrainer
          * -------------------------------------------------------------------- */
         public static bool MiniGameAutoWin { get; private set; }
 
-        /// <summary>反射版 Resources.FindObjectsOfTypeAll<T>()(含非激活对象), 不依赖 T 是引用类型编译期约束。</summary>
-        private static Array FindAll(Type t)
+        /// <summary>
+        /// 反射版 Resources.FindObjectsOfTypeAll<T>()(含非激活对象)。
+        /// 注意: IL2CPP 返回的是 Il2CppReferenceArray<T>, **不是** System.Array,
+        /// 不能强转, 必须用 EnumerateAny(GetEnumerator) 来读 —— 上一版就是在这里
+        /// 抛 InvalidCastException 导致永远抓不到对象。
+        /// </summary>
+        private static List<object> FindAll(Type t)
         {
             try
             {
@@ -1313,14 +1318,15 @@ namespace QteTrainer
                 {
                     if (mi.Name != "FindObjectsOfTypeAll" || !mi.IsGenericMethodDefinition) continue;
                     if (mi.GetParameters().Length != 0) continue;
-                    return (Array)mi.MakeGenericMethod(t).Invoke(null, null);
+                    object result = mi.MakeGenericMethod(t).Invoke(null, null);
+                    return EnumerateAny(result);
                 }
             }
             catch (Exception ex)
             {
                 QteTrainerPlugin.LogSource?.LogWarning($"FindObjectsOfTypeAll({t.Name}) 失败: {ex.GetType().Name}: {ex.Message}");
             }
-            return new object[0];
+            return new List<object>();
         }
 
         /// <summary>尝试抓到当前场景里的调教控制器, 抓不到返回 null。</summary>
@@ -1392,10 +1398,24 @@ namespace QteTrainer
             return true;
         }
 
+        private static Game.TouchPlayer _cachedTouchPlayer;
+        private static float _nextTouchRefresh = -1f;
+
+        /// <summary>带 0.5s 缓存的查找, 供每帧调用, 避免每帧扫全场景。</summary>
+        private static Game.TouchPlayer FindTouchPlayerCached()
+        {
+            float now = 0f;
+            try { now = UnityEngine.Time.time; } catch { }
+            if (_cachedTouchPlayer != null && now < _nextTouchRefresh) return _cachedTouchPlayer;
+            _nextTouchRefresh = now + 0.5f;
+            _cachedTouchPlayer = FindTouchPlayer();
+            return _cachedTouchPlayer;
+        }
+
         /// <summary>每帧调用(仅当 MiniGameAutoWin 开): 把进度按住, 让小游戏自己判满。</summary>
         public static void ApplyMiniGameAutoWin()
         {
-            var player = FindTouchPlayer();
+            var player = FindTouchPlayerCached();
             if (player == null) return;
             try
             {
@@ -1415,10 +1435,10 @@ namespace QteTrainer
         /// <summary>打印小游戏当前状态, 用来确认哪个字段是那个 9/10 计数。</summary>
         public static void DumpMiniGame()
         {
-            int nPoint = FindAll(typeof(Game.TouchPoint)).Length;
-            int nPlayer = FindAll(typeof(Game.TouchPlayer)).Length;
-            int nForm = FindAll(typeof(Game.MiniGameForm)).Length;
-            int nTrain = FindAll(typeof(Game.TrainPlayer)).Length;
+            int nPoint = FindAll(typeof(Game.TouchPoint)).Count;
+            int nPlayer = FindAll(typeof(Game.TouchPlayer)).Count;
+            int nForm = FindAll(typeof(Game.MiniGameForm)).Count;
+            int nTrain = FindAll(typeof(Game.TrainPlayer)).Count;
             var player = FindTouchPlayer();
             if (player == null)
             {
