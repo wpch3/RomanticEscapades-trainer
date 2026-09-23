@@ -1776,9 +1776,47 @@ namespace QteTrainer
                 }
             }
 
+            // 第二路: InfoMgr 里经常拿不到活动任务, 改从 ProtoTask 表枚举 key,
+            // 再 TaskMgr.GetActiveTask(key) 抓**正在进行**的任务, 完成它并领奖励。
+            object protoTaskMap = GetProtoKeyMap("Game.ProtoTask");
+            int byKey = 0;
+            if (taskMgr != null && protoTaskMap != null)
+            {
+                var getActive = taskMgr.GetType().GetMethod("GetActiveTask");
+                foreach (var pair in EnumerateAny(protoTaskMap))
+                {
+                    string key = PairPart(pair, "Key") as string;
+                    if (string.IsNullOrWhiteSpace(key)) continue;
+                    try
+                    {
+                        var task = getActive != null ? getActive.Invoke(taskMgr, new object[] { key }) : null;
+                        if (task == null) continue;
+                        foreach (var go in EnumerateAny(ReflectGet(task, "Goals")))
+                        {
+                            var tg = go as Game.TaskGoal;
+                            if (tg == null) continue;
+                            var gi = tg.Info;
+                            if (gi == null) continue;
+                            float max = 0f;
+                            try { max = gi.ProgressMax; } catch { }
+                            try { gi.Progress = max > 0f ? max : 1f; } catch { }
+                            SetEnumPropFinished(gi, "State");
+                            SetEnumPropFinished(gi, "InfoState");
+                            goals++;
+                        }
+                        var succ = task.GetType().GetMethod("Succ");
+                        if (succ != null) { succ.Invoke(task, null); succeeded++; byKey++; }
+                    }
+                    catch (Exception ex)
+                    {
+                        QteTrainerPlugin.LogSource?.LogWarning($"GetActiveTask({key}).Succ 失败: {ex.GetType().Name}: {ex.Message}");
+                    }
+                }
+            }
+
             QteTrainerPlugin.LogSource?.LogInfo(
-                $"任务一键完成: 处理 {tasks} 个任务 / {goals} 个目标, 其中 {succeeded} 个活动任务走了 Succ()。");
-            return tasks;
+                $"任务一键完成: 处理 {tasks} 个存档任务 + {byKey} 个活动任务, 共 {goals} 个目标, 其中 {succeeded} 个走了 Succ()。");
+            return tasks + byKey;
         }
 
         /// <summary>
